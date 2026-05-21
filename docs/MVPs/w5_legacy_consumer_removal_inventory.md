@@ -403,3 +403,55 @@ Each step is independently testable. No step removes any legacy *function* — e
 - The F11 NPC planner W5-first migration once the planner test suites are confirmed green.
 
 Phase 6B-3 may **not** delete any opt-out short-circuit, any malformed-W5 safety return, any substrate read, or any compatibility alias on the public payload contract. Each such removal requires its own ADR with the gates listed above.
+
+---
+
+## Phase 6B-3A — Director eager-baseline lazy reorder + Executor W5-first reads (complete)
+
+**Phase:** 6B-3A is the first commit of Phase 6B-3. It lands the two consumer migrations that are demonstrably safe to execute without removing any opt-out short-circuit, malformed-W5 safety net, substrate read, or public compatibility alias. **No legacy code is removed in Phase 6B-3A.**
+
+### Phase 6B-3A — what changed
+
+| # | Change | File(s) | Effect |
+|---|--------|---------|--------|
+| F1 | Lazy re-order of the Director eager baseline | `ai_stack/langgraph/runtime_executor/director_w5_location_projection.py` (SOURCE_LINES of `complete_actor_locations_for_gathering_with_optional_w5_projection`) | The eager `baseline_completion = complete_actor_locations_for_gathering(...)` call at function entry is removed. The legacy completion now runs only inside the explicit-opt-out `if not enabled:` return path and the malformed-W5 `except Exception as exc:` return path. Output is bit-for-bit identical on D / O / M. F4 (the W5-success branch's `complete_actor_locations_for_gathering(...)` call) is preserved. |
+| F21 | Inline `_pr_c_actor_locations_raw` substrate read becomes W5-first | `ai_stack/langgraph/runtime_executor/executor_action_resolution_start.py` (SOURCE_LINES of `_resolve_player_action`) | The inline `state.get("actor_locations")` → `environment_state.actor_locations` chain is wrapped in `resolve_w5_first_actor_locations(...)`. Under default-on the resolver prefers `where_summary.derived_actor_locations`. Under opt-out / malformed-W5 / old-payload it returns the legacy substrate verbatim. |
+| F22 | `actor_locations_source` diagnostic emitted on `graph_diagnostics` | `ai_stack/langgraph/runtime_executor/executor_action_resolution_commit.py` (SOURCE_LINES of `_resolve_player_action`) | After F1 is called, the commit side now emits `graph_diagnostics["actor_locations_source"] = {"source": …, "w5_snapshot_id"?: …, "failure_reason"?: …}` so admin diagnostics, Langfuse metadata, and downstream consumers can audit which read path the turn actually used. |
+
+### Phase 6B-3A — what is preserved
+
+- **Explicit opt-out fallback** (F2, F6, F9, F12, F14 in the Phase 6B-2 inventory) is unchanged. `W5_AST_DIRECTOR_PROJECTION_ENABLED=0/false/no/off` continues to revert F1, F21, F22 to the pre-Phase-6B-3A legacy substrate path.
+- **Malformed/missing-W5 safety fallback** (F3, F7, F10, F13, F15) is unchanged. Missing or malformed snapshots continue to fall back to the legacy baseline at F1 with `w5_director_projection_failed` set, and to the legacy substrate at F21/F22 with `source == "malformed_w5_fallback"`.
+- **Substrate writers and readers** (F4, F5, F16, F20, F25; S1–S8 in Phase 6A) are unchanged. `complete_actor_locations_for_gathering`, the W5 extractor, the environment-state substrate, and the `Participant.current_room_id` dataclass field are all preserved.
+- **Public compatibility aliases** (`current_room`, `current_room_id`, `gathering_scene_id`, `complete_actor_locations_for_gathering`) are unchanged.
+- **No committed event is mutated.** The `director_gathering_state` payload, the actor lane, the canonical path, `validation_outcome`, ADR-0033 commit semantics, and ADR-0061 pause semantics are unchanged. The new diagnostic lives entirely on `graph_diagnostics` (read-side observability surface).
+- **How remains first-class. Inferred Why remains soft truth.** Neither dimension is collapsed by Phase 6B-3A.
+
+### Phase 6B-3A — `actor_locations_source` classification
+
+The new F21/F22 diagnostic `graph_diagnostics["actor_locations_source"]["source"]` is one of:
+
+| `source` value | Meaning | When it fires |
+|----------------|---------|---------------|
+| `w5_projection` | The W5 projection won; the actor_locations come from `where_summary.derived_actor_locations`. | Default-on `D` path with a well-formed `w5_latest_snapshot` in state. |
+| `explicit_opt_out_legacy` | The operator opted the Director projection out; the legacy substrate is used verbatim. | `W5_AST_DIRECTOR_PROJECTION_ENABLED` ∈ `{0, false, no, off}`. |
+| `malformed_w5_fallback` | The snapshot was present but `build_w5_projection_for_director(...)` raised or returned no usable derived_actor_locations; the legacy substrate is used verbatim and `failure_reason` carries a compact error string. | Default-on `M` path. |
+| `old_payload_legacy` | No `w5_latest_snapshot` is present in graph state (old session predating Phase 1 wire-in, or missing wire-in); the legacy substrate is used verbatim. | Default-on `L` path. |
+
+### Phase 6B-3A — tests added
+
+- `ai_stack/tests/test_w5_actor_tracking_phase_6b3a_consumer_migration.py`
+  - `TestF1LazyReorder` — pins `D` happy path source classification, `D` parity with the legacy completion when fed W5-derived inputs, `O` envelope bit-for-bit parity, `O` via explicit argument vs env var parity, and `M` baseline + `w5_director_projection_failed`.
+  - `TestF21F22ResolveW5FirstActorLocations` — pins the four-way classification (`w5_projection`, `explicit_opt_out_legacy`, `malformed_w5_fallback`, `old_payload_legacy`), the defensive-copy semantics for the legacy input, the explicit-argument-overrides-environment behavior, and the `legacy_actor_locations=None` tolerance.
+  - `test_f1_lazy_reorder_preserves_f4_w5_success_completion_call` — pins that F4 (the W5-success completion call) survives the reorder.
+- Existing suites continue to pin Phase 6B-3A's contract: `ai_stack/tests/test_phase1_live_wiring.py`, `ai_stack/tests/test_pr_c_director_pause_mode.py`, `ai_stack/tests/test_w5_actor_tracking_phase_6b1_default_on_flags.py`, `ai_stack/tests/test_w5_actor_tracking_phase_6b2_fallback_inventory.py`, `ai_stack/tests/test_w5_actor_tracking_projection.py`, `ai_stack/tests/test_w5_actor_tracking_validation.py`, `ai_stack/tests/test_environment_state_contracts.py`, and `tests/test_inventory_w5_legacy_consumers.py`.
+
+### Phase 6B-3A — what Phase 6B-3 still has to do
+
+| Sub-phase | Scope | Status |
+|-----------|-------|--------|
+| **6B-3A** | F1 lazy re-order + F21/F22 W5-first reads + diagnostics. | ✅ complete (this section). |
+| 6B-3B | F8 / F18 / F19 sequenced removal of narrator `transition_from_previous` fallback. Requires the narrator prompt to become W5-only behind a strict flag, the parity tests in `test_story_runtime_w5_narrator_projection.py` to be rewritten, and the admin parity bridge F20 (`diagnostics_api.py::_w5_runtime_metadata_for_session`) to be updated in lockstep. | planned. |
+| 6B-3C | F11 NPC planner W5-first migration: pass `npc_w5_situations` first into the planner contract; treat `npc_context_bundle` as a malformed-W5 fallback. Requires `test_npc_agency_planner.py`, `test_npc_agency_contracts.py`, `test_npc_agency_long_horizon_claim_readiness.py`, and `test_wave3_multi_actor_vitality.py` to stay green. | planned. |
+| later ADR | F17 player-shell `current_room_id` alias and F24 WS `viewer_room_id` alias. Requires frontend / WebSocket client upgrade. | out of 6B-3 scope. |
+| later ADR | F23 `narrator_consequence_contracts.py` (C7) and the sensory engine (C8). Requires a new W5-first builder for movement framing and stage-level area. | out of 6B-3 scope. |

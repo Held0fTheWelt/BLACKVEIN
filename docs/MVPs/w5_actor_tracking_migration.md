@@ -264,6 +264,66 @@ Phase 3B keeps W5 read-only for NPC planning. Actor Lane authority, commit/readi
 
 **Phase 6B-2 explicitly does not change runtime behavior.** No flag default was changed. No legacy function was renamed or deleted. No committed-event output was modified. The only code additions are (a) the classification-proof tests, (b) the inventory script's informational labels, and (c) the documentation updates here and in the inventory doc.
 
+### Phase 6B-3A — Director eager-baseline lazy reorder + Executor W5-first reads (complete)
+
+**Goal:** Land the first two sequenced consumer migrations of Phase 6B-3 — the **F1** lazy re-order of the Director eager baseline and the **F21 / F22** W5-first reads in the executor action-resolution split — without removing any opt-out short-circuit, malformed-W5 safety net, substrate read, or public compatibility alias. No committed-event output is mutated.
+
+**F1 — Director eager-baseline lazy re-order**
+
+- [x] `complete_actor_locations_for_gathering_with_optional_w5_projection` (`ai_stack/langgraph/runtime_executor/director_w5_location_projection.py` SOURCE_LINES) no longer pre-computes the eager `baseline_completion = complete_actor_locations_for_gathering(...)` at function entry. The legacy completion is now invoked **only** inside the two return paths that need it:
+  - the explicit-opt-out short-circuit (`if not enabled:`),
+  - the malformed-W5 `except Exception as exc:` branch.
+- [x] The default-on happy path no longer performs the wasted baseline computation under `D`. The W5-success branch still runs its own completion call (F4 in the Phase 6B-2 inventory) over W5-derived actor locations; ADR-0061 pause semantics, `gathering_scene_id` derivation, and NPC fallback voting are unchanged.
+- [x] Output is bit-for-bit identical on `D`, `O`, and `M` paths. The function still returns the same `{"location_completion": …, "diagnostics": …, "w5_projection": …}` envelope on every path.
+- [x] `complete_actor_locations_for_gathering` (the legacy completion algorithm) is **not** removed; it remains the single source of truth for NPC fallback voting and gathering_scene_id derivation (substrate_keep / F5 in the Phase 6B-2 inventory).
+
+**F21 / F22 — Executor action-resolution W5-first reads**
+
+- [x] New helper `resolve_w5_first_actor_locations(...)` (also under `director_w5_location_projection.py` SOURCE_LINES, re-exported from `ai_stack.langgraph.runtime_executor.public`) classifies the actor-location read into one of four sources:
+  - `w5_projection` — default-on happy path; W5 `where_summary.derived_actor_locations` won.
+  - `explicit_opt_out_legacy` — `W5_AST_DIRECTOR_PROJECTION_ENABLED=0/false/no/off`.
+  - `malformed_w5_fallback` — default-on but `build_w5_projection_for_director(...)` raised or returned no usable derived_actor_locations.
+  - `old_payload_legacy` — default-on but no `w5_latest_snapshot` in graph state (pre-Phase-1 session or missing wire-in).
+- [x] `executor_action_resolution_start.py` SOURCE_LINES now calls `resolve_w5_first_actor_locations(...)` to compute `_pr_c_actor_locations_raw`, replacing the inline `state.get("actor_locations")` → `environment_state.actor_locations` chain. Legacy substrate reads remain as the helper's fallback inputs.
+- [x] `executor_action_resolution_commit.py` SOURCE_LINES emits the resulting `actor_locations_source` diagnostic on `graph_diagnostics`:
+  - `graph_diagnostics["actor_locations_source"]["source"]` is one of the four classification strings above.
+  - `graph_diagnostics["actor_locations_source"]["w5_snapshot_id"]` is set when `source == "w5_projection"`.
+  - `graph_diagnostics["actor_locations_source"]["failure_reason"]` is set when `source == "malformed_w5_fallback"`.
+- [x] No committed event is mutated. The `director_gathering_state` payload, the actor lane, the canonical path, `validation_outcome`, and ADR-0061 pause semantics are unchanged. The new diagnostic lives entirely on `graph_diagnostics` (read-side observability surface).
+- [x] `complete_actor_locations_for_gathering_with_optional_w5_projection` is unchanged on the wire — the executor still passes it the same `actor_locations=...` keyword (now W5-derived under `D`, legacy under `O` / `M` / `L`). F1 then runs its own W5 attempt against the same snapshot for the `w5_director_projection` diagnostic the admin surfaces already read.
+
+**Fallback behavior preserved**
+
+- [x] Explicit opt-out (`W5_AST_DIRECTOR_PROJECTION_ENABLED=0/false/no/off`) continues to revert the Director and the F21/F22 reads to the legacy substrate verbatim. The F1 opt-out short-circuit (F2 in the inventory) is preserved.
+- [x] Malformed/missing W5 snapshots continue to fall back to the legacy baseline completion (F3 in the inventory) and the malformed-W5 source classification at F21/F22.
+- [x] Old sessions without a `w5_latest_snapshot` in graph state continue to use the legacy substrate at F21/F22 with `source == "old_payload_legacy"` and at F1 with the malformed-W5 safety branch (`missing_w5_latest_snapshot`).
+- [x] Public compatibility aliases remain in place: `current_room`, `current_room_id`, `gathering_scene_id`, and `complete_actor_locations_for_gathering` are all preserved.
+
+**Diagnostics added / updated**
+
+- [x] `graph_diagnostics["actor_locations_source"]` — typed source classifier as above. New in Phase 6B-3A.
+- [x] `graph_diagnostics["w5_director_projection"]` — existing F22 diagnostic preserved verbatim under default-on; opt-out continues to suppress it.
+- [x] `graph_diagnostics["actor_location_completion"]` — emitted unchanged on the diagnostic_blocker path.
+- [x] F1 internal diagnostics (`w5_director_projection_used`, `w5_director_projection_failed`, `w5_snapshot_id`, `derived_actor_locations_source`, `gathering_pause_source`) are unchanged.
+
+**Tests**
+
+- [x] New `ai_stack/tests/test_w5_actor_tracking_phase_6b3a_consumer_migration.py` pins:
+  - F1 lazy reorder happy path (`D`), opt-out (`O`) bit-for-bit envelope, malformed-W5 (`M`) baseline + `w5_director_projection_failed`, and the W5-success → legacy completion-call parity (F1 ↔ F4 contract).
+  - F21/F22 helper `resolve_w5_first_actor_locations(...)` four-way classification: `w5_projection`, `explicit_opt_out_legacy`, `malformed_w5_fallback`, `old_payload_legacy`. Each case asserts the resolved `actor_locations`, the `source` tag, the `w5_snapshot_id`, the `failure_reason`, defensive-copy semantics, and that the explicit `w5_director_projection_enabled=...` argument overrides the environment variable.
+- [x] Existing `ai_stack/tests/test_phase1_live_wiring.py`, `ai_stack/tests/test_pr_c_director_pause_mode.py`, `ai_stack/tests/test_w5_actor_tracking_phase_6b1_default_on_flags.py`, and `ai_stack/tests/test_w5_actor_tracking_phase_6b2_fallback_inventory.py` continue to pass against the lazy reorder — they pin the F1 envelope on every path.
+- [x] `tests/test_inventory_w5_legacy_consumers.py` continues to pass; the inventory script reports the same forbidden-package state and the same R1–R5 rename guarantees.
+
+**Phase 6B-3A explicitly does not start narrator transition migration (F8/F18/F19) and does not start NPC legacy-context removal (F11).** Those are sequenced as Phase 6B-3B / 6B-3C and require their own pre-removal parity-test rewrites (see [w5_legacy_consumer_removal_inventory.md](./w5_legacy_consumer_removal_inventory.md) Phase 6B-3 ordering).
+
+### Phase 6B-3B — Narrator `transition_from_previous` removal (planned)
+
+- Sequence F8, F18, F19 as previously documented in Phase 6B-2 ordering. Rewrite the narrator system-prompt fallback paragraph behind a W5-narrator-strict flag (default-off), then update `test_story_runtime_w5_narrator_projection.py` parity tests, then remove the `source_facts["transition_from_previous"] = …` line in `god_of_carnage_narrator_path.py` and prune the comment in `opening_fallback_observability.py`. Update the admin parity bridge `diagnostics_api.py::_w5_runtime_metadata_for_session` (A6 / F20) in lockstep.
+
+### Phase 6B-3C — NPC planner W5-first migration (planned)
+
+- F11 NPC planner W5-first migration: pass `npc_w5_situations` first into the planner contract; treat `npc_context_bundle` as a malformed-W5 fallback. Pin `test_npc_agency_planner.py`, `test_npc_agency_contracts.py`, `test_npc_agency_long_horizon_claim_readiness.py`, and `test_wave3_multi_actor_vitality.py` before removing the bundle from the non-fallback call path.
+
 ### Phase 6B — Legacy localization decommission (planned)
 
 - Once all consumers read W5 projections, remove legacy localization / actor-location helpers that bypass W5.
