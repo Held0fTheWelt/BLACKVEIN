@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import app.services.ai_stack.ai_engineer_suite_service as suite_service
+from app.services.ai_stack.ai_engineer_suite import rag_operations as suite_rag_operations
+from app.services.ai_stack.ai_engineer_suite import runtime_dashboard as suite_dashboard
+from app.services.ai_stack.ai_engineer_suite import runtime_settings as suite_runtime_settings
 
 
 def test_effective_config_includes_comparison_and_boundedness(monkeypatch):
     monkeypatch.setattr(
-        suite_service,
+        suite_runtime_settings,
         "_read_suite_state",
         lambda: (
             "balanced",
@@ -18,7 +21,7 @@ def test_effective_config_includes_comparison_and_boundedness(monkeypatch):
         ),
     )
     monkeypatch.setattr(
-        suite_service,
+        suite_runtime_settings,
         "_runtime_preset_map",
         lambda: {
             "balanced": {
@@ -33,7 +36,7 @@ def test_effective_config_includes_comparison_and_boundedness(monkeypatch):
         },
     )
     monkeypatch.setattr(
-        suite_service,
+        suite_runtime_settings,
         "_current_advanced_settings",
         lambda: {
             "retrieval_top_k": 6,
@@ -41,7 +44,7 @@ def test_effective_config_includes_comparison_and_boundedness(monkeypatch):
         },
     )
     monkeypatch.setattr(
-        suite_service,
+        suite_runtime_settings,
         "_guardrail_warnings",
         lambda effective: [{"severity": "warn", "message": "debug warning"}],
     )
@@ -56,7 +59,7 @@ def test_effective_config_includes_comparison_and_boundedness(monkeypatch):
 
 def test_runtime_dashboard_exposes_domain_status_and_warning_summary(app, monkeypatch):
     monkeypatch.setattr(
-        suite_service,
+        suite_dashboard,
         "evaluate_runtime_readiness",
         lambda: {
             "ai_only_valid": False,
@@ -78,7 +81,7 @@ def test_runtime_dashboard_exposes_domain_status_and_warning_summary(app, monkey
         },
     )
     monkeypatch.setattr(
-        suite_service,
+        suite_dashboard,
         "get_rag_operations_status",
         lambda: {
             "operational_state": "degraded",
@@ -90,7 +93,7 @@ def test_runtime_dashboard_exposes_domain_status_and_warning_summary(app, monkey
         },
     )
     monkeypatch.setattr(
-        suite_service,
+        suite_dashboard,
         "get_orchestration_status",
         lambda trace_id=None: {
             "overall_state": "blocked",
@@ -100,7 +103,7 @@ def test_runtime_dashboard_exposes_domain_status_and_warning_summary(app, monkey
         },
     )
     monkeypatch.setattr(
-        suite_service,
+        suite_dashboard,
         "build_world_engine_control_center_snapshot",
         lambda app, trace_id=None: {
             "status": {"state": "blocked", "control_plane_ok": False, "warning_count": 1},
@@ -108,7 +111,7 @@ def test_runtime_dashboard_exposes_domain_status_and_warning_summary(app, monkey
         },
     )
     monkeypatch.setattr(
-        suite_service,
+        suite_dashboard,
         "_effective_config_payload",
         lambda: {
             "active_preset_id": "balanced",
@@ -134,7 +137,7 @@ def test_runtime_dashboard_exposes_domain_status_and_warning_summary(app, monkey
 
 def test_runtime_dashboard_next_actions_when_task_routes_green_and_ai_only_valid(app, monkeypatch):
     monkeypatch.setattr(
-        suite_service,
+        suite_dashboard,
         "evaluate_runtime_readiness",
         lambda: {
             "ai_only_valid": True,
@@ -148,7 +151,7 @@ def test_runtime_dashboard_next_actions_when_task_routes_green_and_ai_only_valid
         },
     )
     monkeypatch.setattr(
-        suite_service,
+        suite_dashboard,
         "get_rag_operations_status",
         lambda: {
             "operational_state": "healthy",
@@ -159,7 +162,7 @@ def test_runtime_dashboard_next_actions_when_task_routes_green_and_ai_only_valid
         },
     )
     monkeypatch.setattr(
-        suite_service,
+        suite_dashboard,
         "get_orchestration_status",
         lambda trace_id=None: {
             "overall_state": "healthy",
@@ -169,7 +172,7 @@ def test_runtime_dashboard_next_actions_when_task_routes_green_and_ai_only_valid
         },
     )
     monkeypatch.setattr(
-        suite_service,
+        suite_dashboard,
         "build_world_engine_control_center_snapshot",
         lambda app, trace_id=None: {
             "status": {"state": "healthy", "control_plane_ok": True, "warning_count": 0},
@@ -179,7 +182,7 @@ def test_runtime_dashboard_next_actions_when_task_routes_green_and_ai_only_valid
         },
     )
     monkeypatch.setattr(
-        suite_service,
+        suite_dashboard,
         "_effective_config_payload",
         lambda: {
             "active_preset_id": "balanced",
@@ -218,12 +221,12 @@ def test_walk_best_rag_root_prefers_monorepo_over_slim(tmp_path):
 
 def test_get_rag_settings_prefers_bootstrap_over_stale_scope_mode(app, monkeypatch):
     monkeypatch.setattr(
-        suite_service,
+        suite_rag_operations,
         "get_runtime_modes",
         lambda: {"retrieval_execution_mode": "hybrid_dense_sparse"},
     )
     monkeypatch.setattr(
-        suite_service,
+        suite_rag_operations,
         "read_scope_settings",
         lambda scope: {"retrieval_execution_mode": "disabled"} if scope == "retrieval" else {},
     )
@@ -239,9 +242,9 @@ def test_update_rag_settings_clears_stale_scope_mode(app, monkeypatch):
         calls.append((scope, key, actor))
         return True
 
-    monkeypatch.setattr(suite_service, "update_runtime_modes", lambda payload, actor: {"updated": True})
-    monkeypatch.setattr(suite_service, "delete_scope_setting", _delete)
-    monkeypatch.setattr(suite_service, "get_rag_settings", lambda: {"retrieval_execution_mode": "sparse_only"})
+    monkeypatch.setattr(suite_rag_operations, "update_runtime_modes", lambda payload, actor: {"updated": True})
+    monkeypatch.setattr(suite_rag_operations, "delete_scope_setting", _delete)
+    monkeypatch.setattr(suite_rag_operations, "get_rag_settings", lambda: {"retrieval_execution_mode": "sparse_only"})
     with app.app_context():
         suite_service.update_rag_settings({"retrieval_execution_mode": "sparse_only"}, "operator")
     assert calls == [("retrieval", "retrieval_execution_mode", "operator")]

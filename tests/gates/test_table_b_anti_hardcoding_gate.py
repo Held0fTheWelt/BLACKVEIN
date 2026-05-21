@@ -447,6 +447,11 @@ def _known_module_literal_debt_reason(rel: str) -> str | None:
             "Package-based StoryRuntimeManager compatibility surface; generic Table B "
             "code must remain isolated to reviewed manager modules."
         )
+    if rel.startswith("world-engine/app/shell_readout/"):
+        return (
+            "Shell readout package still contains GoC-specific pressure prose that "
+            "was previously isolated in story_runtime_shell_readout.py."
+        )
     filename = Path(rel).name
     if rel.startswith("ai_stack/goc_") or (
         rel.startswith("ai_stack/story_runtime/") and filename.startswith("goc_")
