@@ -76,8 +76,11 @@ def rebuild_story_consequence_cascade(
 
 
 @router.get("/story/sessions/{session_id}/diagnostics-envelope", dependencies=[Depends(_require_internal_api_key)])
-def get_story_diagnostics_envelope(session_id: str, manager: StoryRuntimeManager = Depends(get_story_manager)) -> dict[str, Any]:
-    """Return the last DiagnosticsEnvelope (MVP4) for a story session."""
+def get_story_diagnostics_envelope(
+    session_id: str,
+    manager: StoryRuntimeManager = Depends(get_story_manager),
+) -> dict[str, Any]:
+    """Return the last diagnostics envelope for a story session."""
     try:
         envelope = manager.get_last_diagnostics_envelope(session_id)
     except KeyError as exc:
@@ -86,6 +89,14 @@ def get_story_diagnostics_envelope(session_id: str, manager: StoryRuntimeManager
         return {"session_id": session_id, "diagnostics_envelope": None, "warning": "no_turns_yet"}
     envelope_dict = envelope_dict_to_response(envelope, context="operator")
     return {"session_id": session_id, "diagnostics_envelope": envelope_dict}
+
+
+@router.get("/story/runtime/narrative-gov-summary", dependencies=[Depends(_require_internal_api_key)])
+def get_narrative_gov_summary(
+    manager: StoryRuntimeManager = Depends(get_story_manager),
+) -> dict[str, Any]:
+    """Return operator health evidence for narrative governance."""
+    return manager.get_narrative_gov_summary()
 
 
 @router.get("/story/sessions/{session_id}/stream-narrator")
@@ -124,9 +135,3 @@ def stream_narrator_blocks(session_id: str, manager: StoryRuntimeManager = Depen
             yield f"data: {json.dumps(error_event)}\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream")
-
-
-@router.get("/story/runtime/narrative-gov-summary", dependencies=[Depends(_require_internal_api_key)])
-def get_narrative_gov_summary(manager: StoryRuntimeManager = Depends(get_story_manager)) -> dict[str, Any]:
-    """Return NarrativeGovSummary (MVP4) — operator health evidence for Narrative Gov."""
-    return manager.get_narrative_gov_summary()
