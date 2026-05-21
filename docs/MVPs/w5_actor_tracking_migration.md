@@ -447,10 +447,36 @@ Phase 3B keeps W5 read-only for NPC planning. Actor Lane authority, commit/readi
 
 **Phase 6B-3C explicitly does not** delete `npc_context_bundle`, `build_npc_context_bundle(...)`, or any opt-out / malformed-W5 safety fallback. The legacy bundle is gated behind the W5-first selector under default-on; the planner's `build_npc_agency_simulation(...)` / `build_npc_agency_plan(...)` continue to accept the bundle as the fallback substrate. A Phase 6B-4 fresh inventory pass is required to identify any branches that are now demonstrably dead under default-on before any deletion proceeds.
 
-### Phase 6B-4 — Fresh consumer-removal inventory (planned)
+### Phase 6B-4 — Fresh consumer-removal inventory (complete)
 
-- Re-run the Phase 6A inventory script over the working tree once Phase 6B-3C lands. Specifically: under default-on + strict-on, classify which legacy NPC context / narrator transition branches are now *demonstrably* dead vs still serving as the explicit-opt-out / malformed-W5 / old-payload safety net. Branches that remain reachable under at least one of `O`, `M`, or `L` continue to be `keep_*_fallback`; only branches that fire on **none** of those four conditions are removal candidates.
-- Output: a new `Phase 6B-4` section of [w5_legacy_consumer_removal_inventory.md](./w5_legacy_consumer_removal_inventory.md) with per-branch reachability proofs and the next sequenced consumer migrations.
+**Goal:** With Phase 6B-3A (F1 lazy reorder + F21/F22 W5-first reads), 6B-3B (F8/F18/F19/F20 narrator strict behind opt-in flag), and 6B-3C (F11 NPC planner W5-first under default-on) landed, produce a fresh legacy-consumer inventory under the broader Phase 6B-4 closed taxonomy (`still_needed_explicit_opt_out`, `still_needed_malformed_w5_safety`, `still_needed_old_payload_compatibility`, `still_needed_public_client_compatibility`, `substrate_keep_future_adr`, `w5_first_migrated_keep_temporarily`, `newly_dead_candidate_for_6b5`, `needs_dedicated_adr_before_removal`, `test_only_update`, `doc_only_update`, `unknown_needs_runtime_trace`) and decide whether any branch is now safe for a future targeted removal phase. **No legacy code is removed in Phase 6B-4.** **No committed event is mutated.** **No flag default is changed.**
+
+- [x] Re-scanned the working tree for every legacy surface (`current_room`, `current_room_id`, `current_area`, `previous_room_id`, `actor_locations`, `participant.current_room_id`, `snapshot.current_room`, `visible_room_ids`, `RuntimeVisibilityPolicy.visible_occupants`, `complete_actor_locations_for_gathering`, `gathering_scene_id`, `derived_gathering_room_id`, `transition_from_previous`, `npc_context_bundle`, legacy NPC context bundle, legacy narrator transition / location fallback, validation fallback reason paths, backend/player-shell `current_room` aliases, WebSocket `current_room` / `viewer_room_id` aliases, direct `environment_state` room/location reads outside substrate/extractor/compatibility layers, forbidden package names `ai_stack/actor_situation` and `ai_stack/w5_actor_situation`).
+- [x] Re-classified all 25 branches from the Phase 6B-2 inventory under the broader Phase 6B-4 taxonomy. Result: 5 explicit-opt-out, 5 malformed-W5 safety, 4 public-client-compat, 6 substrate, 6 W5-first-migrated-keep-temporarily, 6 needs-dedicated-ADR, **0 newly-dead-candidates**, 0 unknown. Multi-tag note: F1 / F11 / F21 are intentionally multi-tagged.
+- [x] Verified the Phase 6A C1–C11 / A1–A9 / S1–S8 entries that did not appear explicitly in 6B-2 are still reachable under at least one of D / O / M / L (player_action_resolution `current_room_id` / `current_area`, semantic_scene_planner anchor fallback, language_adapter `current_area` payload, runtime_world projector, dramatic_context_authority direct substrate read, world-engine shell readout, diagnostic template builder, substrate writers).
+- [x] Verified Phase 6B-3 outcomes against the inventory tests:
+  - F1 default-on no longer eager-runs the legacy baseline — pinned by `TestF1DefaultOnDoesNotEagerRunLegacyBaseline` (D-source = `"w5_projection_with_actor_lane_fallback"`).
+  - F21/F22 default-on W5 path remains primary — pinned by `TestF21F22DefaultOnRemainsW5First` (four-way classification).
+  - F8 strict-OFF default keeps legacy `transition_from_previous` first-class; strict-ON demotes it under `_legacy_compat`.
+  - F18 prompt is strict-W5 under the strict flag; strict-OFF retains the legacy fallback paragraph.
+  - F19 docstring wording is W5-first.
+  - F20 admin metadata is W5-first under both strict postures; legacy parity label flips between `legacy_compat_visible` and `demoted_to_legacy_compat`.
+  - F11 NPC planner default-on emits `effective_npc_context_bundle=None`; opt-out / malformed-W5 / old-payload still forward the bundle verbatim.
+- [x] Extended `scripts/inventory_w5_legacy_consumers.py` with a `PHASE_6B4_CLASSIFICATION` map and a closed `PHASE_6B4_TAXONOMY` tuple. Human-readable output now hints the Phase 6B-4 classification per surface. Script remains non-failing.
+- [x] Added `ai_stack/tests/test_w5_actor_tracking_phase_6b4_post_migration_inventory.py` (19 tests) pinning the F1 default-on lazy reorder, the F21/F22 four-way classification, the narrator strict default-OFF vs strict-ON contract on F8 `source_facts`, the F11 default-on `effective_npc_context_bundle=None` contract, the F11 O / M / L verbatim-forwarding contract, the closed Phase 6B-4 taxonomy / classification consistency with the inventory script, the inventory script's `main(--json)` non-failing exit contract, and the absence of any `newly_dead_candidate_for_6b5` finding.
+- [x] Wrote the full post-migration inventory + recommended Phase 6B-5 plan to [w5_legacy_consumer_removal_inventory.md §"Phase 6B-4"](./w5_legacy_consumer_removal_inventory.md#phase-6b-4--fresh-post-migration-legacy-fallback-inventory-complete).
+
+**Constraints in Phase 6B-4 (preserved):**
+
+- No legacy localization helpers or fields are removed.
+- No opt-out short-circuit, malformed-W5 safety net, substrate read, or public compatibility alias is removed.
+- No W5 feature flag default is changed. `W5_AST_NARRATOR_STRICT_ENABLED` remains opt-in (default-off).
+- `current_room`, `current_room_id`, `actor_locations`, `gathering_scene_id`, `complete_actor_locations_for_gathering`, `npc_context_bundle`, `transition_from_previous`, substrate writers, and `environment_state` substrate reads in allowed substrate/extractor paths are untouched.
+- No committed event is mutated. No committed output is changed.
+- ADR-0033, ADR-0061, ADR-0063, the Actor Lane, Commit/Readiness, `validation_outcome`, the Canonical Path, and W5 validation semantics are unchanged.
+- W5 remains the higher-level actor-situation authority. `environment_state` remains the low-level committed substrate. How remains first-class. Inferred Why remains soft truth.
+
+**Outcome:** Phase 6B-5 is **not** a branch-deletion phase. It is the next sequenced *consumer migration* (narrator strict permanent flip + narrator-consequence W5-first builder + frontend / WS client upgrade) plus small doc cleanups. The branch-by-branch deletion schedule is documented in the Phase 6B-4 inventory section. Substrate consolidation remains deferred to a future ADR.
 
 ### Phase 6B — Legacy localization decommission (planned)
 

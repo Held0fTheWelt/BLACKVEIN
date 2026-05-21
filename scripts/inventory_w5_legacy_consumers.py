@@ -91,6 +91,134 @@ PHASE_6B2_CLASSIFICATION: dict[str, str] = {
 }
 
 
+# Phase 6B-4 — Fresh post-migration classification taxonomy after F1/F21/F22/
+# F8/F18/F19/F20/F11 were migrated. The labels below describe the *reachability
+# class* a surface still falls into under the Phase 6B-3A/B/C migration state:
+#
+#   - still_needed_explicit_opt_out      — branch fires only under W5_AST_*=0/false/no/off
+#   - still_needed_malformed_w5_safety   — branch fires only on missing/malformed W5 snapshot
+#   - still_needed_old_payload_compat    — branch fires only on legacy sessions without W5 wire-in
+#   - still_needed_public_client_compat  — branch fires because WS/frontend payload contract requires it
+#   - substrate_keep_future_adr          — substrate writer/reader; consolidation deferred to a later ADR
+#   - w5_first_migrated_keep_temporarily — Phase 6B-3A/B/C migrated this; helper/legacy code retained
+#                                          as the malformed-W5 / opt-out / old-payload safety net
+#   - newly_dead_candidate_for_6b5       — Phase 6B-4 candidate for targeted Phase 6B-5 removal
+#                                          (default-on does not execute the branch AND O/M/L are
+#                                          covered by a *different* branch AND removal does not
+#                                          touch a public payload contract). Phase 6B-4 finds none.
+#   - needs_dedicated_adr_before_removal — branch fires under D but is part of a public payload
+#                                          contract that requires a separately-scoped ADR + client
+#                                          upgrade before removal (e.g., player-shell current_room_id,
+#                                          WS viewer_room_id, narrator_consequence area metadata).
+#   - test_only_update                   — test fixture / assertion; updates in lockstep with producer
+#   - doc_only_update                    — docstring/comment/prompt-text-only legacy reference
+#   - unknown_needs_runtime_trace        — coverage cannot be proven statically; needs a live trace
+#
+# Every label below is informational only. The authoritative per-branch table
+# lives in docs/MVPs/w5_legacy_consumer_removal_inventory.md §"Phase 6B-4".
+PHASE_6B4_CLASSIFICATION: dict[str, str] = {
+    "current_room": (
+        "substrate_keep_future_adr + needs_dedicated_adr_before_removal — "
+        "substrate read in runtime_world/environment_state AND public "
+        "player-shell + WS payload alias; frontend/WS clients still read it"
+    ),
+    "current_room_id": (
+        "substrate_keep_future_adr + needs_dedicated_adr_before_removal — "
+        "Participant dataclass substrate field AND public player-shell + WS "
+        "payload alias"
+    ),
+    "current_area": (
+        "substrate_keep_future_adr — C5 player_action_resolution / C7 "
+        "narrator_consequence_contracts / C8 sensory_context_engine reads "
+        "still primary; needs_dedicated_adr_before_removal for the W5-first "
+        "movement-framing / stage-area builder"
+    ),
+    "previous_room_id": (
+        "substrate_keep_future_adr — environment_state substrate field only"
+    ),
+    "actor_locations": (
+        "substrate_keep_future_adr — environment_state substrate field; "
+        "W5 extractor input; F1 / F4 / F5 / F21 / F22 still call it on O/M/L"
+    ),
+    "visible_room_ids": (
+        "substrate_keep_future_adr — environment_state visibility substrate"
+    ),
+    "visible_occupants": (
+        "substrate_keep_future_adr — RuntimeVisibilityPolicy substrate field"
+    ),
+    "RuntimeVisibilityPolicy": (
+        "substrate_keep_future_adr — engine-level visibility substrate"
+    ),
+    "complete_actor_locations_for_gathering": (
+        "substrate_keep_future_adr + w5_first_migrated_keep_temporarily — "
+        "Director baseline completion algorithm called by F1 (opt-out + "
+        "malformed-W5 branches) and F4 (W5-success branch over W5-derived "
+        "actor_locations); single source of truth for NPC fallback voting + "
+        "gathering_scene_id derivation"
+    ),
+    "gathering_scene_id": (
+        "substrate_keep_future_adr — derived inside complete_actor_locations_"
+        "for_gathering; consumed by ADR-0061 pause predicate"
+    ),
+    "derived_gathering_room_id": (
+        "substrate_keep_future_adr — Director alias produced by F5"
+    ),
+    "transition_from_previous": (
+        "w5_first_migrated_keep_temporarily under W5_AST_NARRATOR_STRICT_"
+        "ENABLED=on (F8/F18/F19/F20 demote / remove under strict); default "
+        "config (strict-OFF) still writes the legacy block as first-class "
+        "narrator situation input — needs_dedicated_adr_before_removal to "
+        "flip strict-on permanently"
+    ),
+    "location_changed": (
+        "substrate_keep_future_adr — W5 where_summary mirror of legacy "
+        "transition_from_previous.location_changed; admin parity bridge "
+        "now reads W5 first under both postures"
+    ),
+    "forbidden_ai_stack_actor_situation": (
+        "FORBIDDEN — must be zero outside inventory docs/scripts/tests"
+    ),
+    "forbidden_ai_stack_w5_actor_situation": (
+        "FORBIDDEN — must be zero outside inventory docs/scripts/tests"
+    ),
+    "w5_actor_situation_term": (
+        "doc_only_update / historical — only inventory/audit artifacts may "
+        "mention this term"
+    ),
+    "validate_w5_actor_situation_old": (
+        "doc_only_update / historical — old function name; only inventory/"
+        "audit artifacts may reference it (R1 done in 6B-0)"
+    ),
+    "validate_w5_actor_tracking_new": "current — Phase 6B-0 R1 rename target",
+    "w5_actor_situation_validation_old": (
+        "doc_only_update / historical — old failure_class string (R2 done "
+        "in 6B-0)"
+    ),
+    "w5_actor_tracking_validation_new": "current — Phase 6B-0 R2 rename target",
+}
+
+
+# Phase 6B-4 — closed taxonomy enum. The script lists this so downstream tests
+# can cross-check the labels in ``PHASE_6B4_CLASSIFICATION`` against the
+# canonical inventory taxonomy. Phase 6B-4 introduces no new failure modes —
+# the script remains non-failing. Phase 6B-5 may promote a candidate from
+# ``newly_dead_candidate_for_6b5`` into the deletion plan, but only after a
+# dedicated ADR records the safety contract.
+PHASE_6B4_TAXONOMY: tuple[str, ...] = (
+    "still_needed_explicit_opt_out",
+    "still_needed_malformed_w5_safety",
+    "still_needed_old_payload_compatibility",
+    "still_needed_public_client_compatibility",
+    "substrate_keep_future_adr",
+    "w5_first_migrated_keep_temporarily",
+    "newly_dead_candidate_for_6b5",
+    "needs_dedicated_adr_before_removal",
+    "test_only_update",
+    "doc_only_update",
+    "unknown_needs_runtime_trace",
+)
+
+
 EXCLUDED_DIR_NAMES: set[str] = {
     ".git",
     "__pycache__",
@@ -239,6 +367,25 @@ def _format_human(report: ScanReport) -> str:
     for key, _ in LEGACY_SURFACES:
         label = PHASE_6B2_CLASSIFICATION.get(key, "—")
         out.append(f"  {key:48s} {label}")
+    out.append("")
+    out.append("Phase 6B-4 classification (informational; authoritative table in")
+    out.append("docs/MVPs/w5_legacy_consumer_removal_inventory.md §'Phase 6B-4'):")
+    out.append(
+        "  closed taxonomy: " + ", ".join(PHASE_6B4_TAXONOMY)
+    )
+    for key, _ in LEGACY_SURFACES:
+        label = PHASE_6B4_CLASSIFICATION.get(key, "—")
+        out.append(f"  {key:48s} {label}")
+    out.append("")
+    out.append(
+        "Phase 6B-4 conclusion: no surface is a newly_dead_candidate_for_6b5; every"
+    )
+    out.append(
+        "branch still fires under at least one of D / O / M / L. See the per-branch"
+    )
+    out.append(
+        "matrix in the inventory doc for the full reachability proof."
+    )
     out.append("")
     forbidden_keys = (
         "forbidden_ai_stack_actor_situation",
