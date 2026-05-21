@@ -498,6 +498,49 @@ Phase 3B keeps W5 read-only for NPC planning. Actor Lane authority, commit/readi
 
 **Next step:** Phase 6B-5B rewrites strict-mode parity tests so the future default-on flip is tested as a semantic W5 authority contract rather than a legacy field-presence check.
 
+### Phase 6B-5B — Narrator strict-mode parity test rewrite (complete)
+
+**Goal:** Strengthen narrator strict-mode parity tests so the future Phase 6B-5C default-on flip of `W5_AST_NARRATOR_STRICT_ENABLED` is proven by *semantic* W5-authority contracts, not by legacy field-presence checks. Phase 6B-5B is a test-contract phase. No runtime behavior changed.
+
+- [x] Added `world-engine/tests/test_story_runtime_w5_narrator_strict_phase_6b5b_parity.py` covering the end-to-end strict-off / strict-on parity contract:
+  - W5 `where_summary.current_location` / `previous_location` / `location_changed` are the strict-on replacement signal for `transition_from_previous`.
+  - W5 `what_summary.facts` carries observed action/interaction facts and is never polluted by How attributes (`tone`, `intensity`, `manner`, `pace`, `physicality`, `method`, `style`).
+  - W5 `how_summary.facts` is first-class with per-fact `source_attribution` / `truth_attribution`, distinguishing committed-action How from director-assigned How.
+  - W5 `why_summary.facts` is soft inferred truth — `truth_attribution = "inferred"` and `source_attribution = "character_mind_record"`.
+  - W5 `who_summary` identifies actor identity / type / role / involvement so the narrator never needs to read `transition_from_previous` for actor scope.
+  - Strict-off keeps `source_facts["transition_from_previous"]` first-class and `_legacy_compat` absent.
+  - Strict-on removes top-level `transition_from_previous` and keeps the same payload under `source_facts["_legacy_compat"]["transition_from_previous"]` with `authority = "w5_projection"` and a notice naming the W5 projection as the actor-situation authority.
+  - The strict-on narrator output prompt explicitly names `source_facts.w5_projection` as the "sole actor-situation authority", explicitly tells the narrator not to consult `source_facts.transition_from_previous`, names all five W5 summaries, uses `where_summary.location_changed` as the scene-shift steering signal, keeps How first-class with the full attribute list, and marks inferred Why as soft / never-spoken-as-fact.
+  - The strict-off prompt still preserves the legacy fallback paragraph and `hard_cut` directed-transition handling for the unstrict path.
+  - Admin / Langfuse diagnostics report `w5.location_changed_source = "w5_history_projection"` under both postures; `w5.narrator_strict_enabled` reflects the effective posture; `w5.legacy_transition_parity` switches between `legacy_compat_visible` (strict-off) and `demoted_to_legacy_compat` (strict-on); a stray legacy `transition_from_previous.location_changed = True` in committed narrator-block diagnostics does NOT override the W5-history signal under strict-on.
+  - Safety branches remain testable: explicit `W5_AST_NARRATOR_PROJECTION_ENABLED=0` still suppresses the projection enrichment, and a malformed `w5_latest_snapshot` still records a `w5_narrator_projection_failed` diagnostic and returns blocks untouched.
+- [x] Added `ai_stack/tests/test_w5_actor_tracking_phase_6b5b_parity.py` covering the ai_stack-side strict-mode contract:
+  - `w5_ast_narrator_strict_enabled` resolver posture matrix: default-off, explicit-off (`0`/`false`/`no`/`off`, case- and whitespace-insensitive), explicit-on (`1`/`true`/`yes`/`on`, case- and whitespace-insensitive), and ambiguous-noise values default to strict-off so Phase 6B-5C remains the only commit that can flip the default.
+  - Retired packages `ai_stack/actor_situation` and `ai_stack/w5_actor_situation` are not importable.
+  - Strict-off GoC narrator path keeps `source_facts["transition_from_previous"]` first-class and `_legacy_compat` absent; hard-cut block remains visible on the first-class surface.
+  - Strict-on GoC narrator path demotes the legacy payload into `source_facts["_legacy_compat"]["transition_from_previous"]` with `authority = "w5_projection"` and a notice that explicitly names "W5", "non-authoritative", and "actor-situation authority".
+  - Strict-on preserves the authored hard-cut directed-transition under `_legacy_compat` so operator parity audits remain possible, and preserves the exact legacy `transition_from_previous` payload byte-for-byte (canonical step ids, mandatory-beat coverage cues, source_refs, module_context, perception text all match the unstrict run — strict mode is a source-of-truth migration, not a content rewrite).
+  - `build_w5_projection_for_narrator` carries semantically meaningful Who / Where / What / How / Why content with per-fact `source_attribution` / `truth_attribution`; the dataclass forbids OBSERVED Why facts so inferred Why can never be silently promoted to observed truth.
+- [x] Documented strict-off / strict-on parity as a Phase 6B-5C readiness gate: the new tests prove that flipping `W5_AST_NARRATOR_STRICT_ENABLED` to default-on does not lose any actor-situation evidence, only changes which surface is authoritative.
+- [x] No runtime behavior changed. `W5_AST_NARRATOR_STRICT_ENABLED` remains opt-in / default-off.
+- [x] No legacy branch removed. `transition_from_previous`, `_legacy_compat`, strict-off narrator prompt fallback paragraph, malformed-W5 safety fallback, projection opt-out, and public compatibility aliases are all still in place.
+- [x] No committed-output mutation. ADR-0033, ADR-0038, ADR-0039, ADR-0061, ADR-0063, ADR-0065, Actor Lane, Commit / Readiness, `validation_outcome`, Canonical Path, and W5 validation are unchanged. How remains first-class. Inferred Why remains soft truth.
+- [x] Required gates re-verified:
+  - `python -m py_compile` on the two new test files: clean.
+  - `python scripts/inventory_w5_legacy_consumers.py`: residual mentions are confined to docs/scripts/tests (informational, allowed).
+  - `pytest -q tests/test_inventory_w5_legacy_consumers.py`: 23 passed, 0 failed.
+  - `pytest -q ai_stack/tests/test_w5_actor_tracking_phase_6b3b_narrator_strict_migration.py`: 23 passed, 0 failed.
+  - `pytest -q ai_stack/tests/test_w5_actor_tracking_phase_6b5b_parity.py`: 36 passed, 0 failed.
+  - `pytest -q ai_stack/tests/test_god_of_carnage_narrator_path.py`: 3 passed, 0 failed.
+  - `PYTHONPATH=world-engine:. pytest -q world-engine/tests/test_story_runtime_w5_narrator_projection.py world-engine/tests/test_story_runtime_w5_narrator_strict_migration.py world-engine/tests/test_story_runtime_w5_narrator_strict_phase_6b5b_parity.py`: 53 passed, 0 failed (8 projection + 15 strict-migration + 30 6B-5B parity).
+  - `PYTHONPATH=world-engine:. pytest -q world-engine/tests/test_goc_narrator_path_opening.py`: 5 passed, 0 failed.
+  - `pytest -q ai_stack/tests/test_w5_actor_tracking_projection.py ai_stack/tests/test_w5_actor_tracking_validation.py`: 49 passed, 0 failed.
+  - `pytest -q tests/gates/test_goc_mvp03_live_dramatic_scene_simulator_gate.py`: 25 passed, 0 failed.
+  - `pytest -q tests/gates/test_goc_mvp04_observability_diagnostics_gate.py tests/test_local_langfuse_docker_config.py`: 59 passed, 0 failed.
+  - `git diff --check`: clean; only the two new test files are staged in the working tree.
+
+**Next step:** Phase 6B-5C flips `W5_AST_NARRATOR_STRICT_ENABLED` to default-on. Explicit disable remains supported through the rollback window. The strict-off prompt fallback paragraph is removed only in Phase 6B-5D, and `_legacy_compat["transition_from_previous"]` is demoted or removed only in Phase 6B-5E, each gated by a fresh parity-test run.
+
 ### Phase 6B — Legacy localization decommission (planned)
 
 - Once all consumers read W5 projections, remove legacy localization / actor-location helpers that bypass W5.
