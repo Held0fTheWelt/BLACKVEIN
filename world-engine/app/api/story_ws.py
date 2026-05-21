@@ -60,7 +60,7 @@ from ai_stack.story_runtime.autonomous_tick import (
     resolve_max_ticks_per_pause,
     resolve_min_tick_interval_ms,
 )
-from ai_stack.story_runtime.ws_session_loop import (
+from ai_stack.story_runtime.session_loop import (
     CLIENT_MSG_CUT_IN,
     CLIENT_MSG_PING,
     CLIENT_MSG_START_TURN,

@@ -40,6 +40,42 @@ class _NarratorOutputPromptsMixin:
                 for block in source_blocks
             ],
         }
+        strict = w5_ast_narrator_strict_enabled()
+        # Phase 6B-3B F18: under W5_AST_NARRATOR_STRICT_ENABLED the prompt
+        # drops the legacy ``transition_from_previous`` fallback paragraph
+        # and treats ``source_facts.w5_projection`` as the sole actor-situation
+        # authority. Who / Where / What / How / Why guidance is preserved
+        # explicitly; How stays first-class; inferred Why stays soft truth.
+        if strict:
+            w5_authority_paragraph = (
+                "Treat source_facts.w5_projection as the sole actor-situation authority for this turn. "
+                "Honor who_summary (actor identity / role), where_summary "
+                "(current_location, location_changed), what_summary "
+                "(current_action / interaction_type), how_summary "
+                "(tone / manner / intensity / pace / physicality / method / style — first-class, "
+                "never folded into what), and why_summary (inferred motive / goal / pressure / "
+                "dramatic_function — soft inferred truth, never spoken as observed fact). "
+                "Use where_summary.location_changed to decide whether the block must narratively "
+                "orient a scene/location shift before describing local detail. "
+                "Do not consult source_facts.transition_from_previous; any "
+                "source_facts._legacy_compat fields are non-authoritative debug breadcrumbs only. "
+            )
+        else:
+            w5_authority_paragraph = (
+                "When source_facts.w5_projection is present, treat its typed who/where/what/how/why summaries as the "
+                "primary actor-situation authority for this turn. Honor where_summary.location_changed, the actor's "
+                "current_location, what_summary.current_action / interaction_type, how_summary (tone/manner/intensity/"
+                "pace/physicality/method/style — first-class, never folded into what), and why_summary (inferred motive/"
+                "goal/pressure/dramatic_function, never spoken as fact). Use transition_from_previous only as a fallback "
+                "when w5_projection is absent. "
+                "If source_facts.transition_from_previous.location_changed or scene_changed is true, the block must "
+                "narratively orient the shift before describing local detail. Use the current location, prior handoff, "
+                "and module setting from source_facts; do not jump directly from one place into room inventory. "
+                "If source_facts.transition_from_previous.directed_transition.kind is hard_cut, treat it as a hard "
+                "authored scene break: briefly break out of smooth narration with a cut/scene-change cue in the target "
+                "language, then establish the exact current place and tableau. Do not invent a travel bridge, do not "
+                "translate direction atoms literally, and do not hardcode any specific wording. "
+            )
         return (
             "You are the World of Shadows narrator synthesis module.\n"
             "Input is English semantic content authority, not player-visible prose. "
@@ -48,19 +84,7 @@ class _NarratorOutputPromptsMixin:
             f"session_output_language={target_language}.\n"
             "Preserve block count, block ids, order, canonical beat coverage, and narrative distance. "
             "Each output block is narrator perception, one to three natural sentences. "
-            "When source_facts.w5_projection is present, treat its typed who/where/what/how/why summaries as the "
-            "primary actor-situation authority for this turn. Honor where_summary.location_changed, the actor's "
-            "current_location, what_summary.current_action / interaction_type, how_summary (tone/manner/intensity/"
-            "pace/physicality/method/style — first-class, never folded into what), and why_summary (inferred motive/"
-            "goal/pressure/dramatic_function, never spoken as fact). Use transition_from_previous only as a fallback "
-            "when w5_projection is absent. "
-            "If source_facts.transition_from_previous.location_changed or scene_changed is true, the block must "
-            "narratively orient the shift before describing local detail. Use the current location, prior handoff, "
-            "and module setting from source_facts; do not jump directly from one place into room inventory. "
-            "If source_facts.transition_from_previous.directed_transition.kind is hard_cut, treat it as a hard "
-            "authored scene break: briefly break out of smooth narration with a cut/scene-change cue in the target "
-            "language, then establish the exact current place and tableau. Do not invent a travel bridge, do not "
-            "translate direction atoms literally, and do not hardcode any specific wording. "
+            + w5_authority_paragraph +
             "Do not copy the coverage_cues as finished prose; treat them as facts to synthesize. "
             "Avoid list cadence, template phrasing, recap language, and visible seams between source fields. "
             "Do not add dialogue, accusations, explanations, role labels, or new facts. "

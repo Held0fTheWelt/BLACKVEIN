@@ -199,7 +199,7 @@ SCENE_ENERGY_CANONICAL_SURFACES = {
     "ai_stack/story_runtime/stream_readiness.py",
     # Phase 2 Stage M — Follow-up composition consumes scene_energy as a
     # semantic capability input for the NPC reply provider (ADR-0058 §Stage M).
-    "ai_stack/story_runtime/ws_session_loop.py",
+    "ai_stack/story_runtime/session_loop/",
 }
 
 INFORMATION_DISCLOSURE_CANONICAL_SURFACES = {
@@ -216,7 +216,7 @@ INFORMATION_DISCLOSURE_CANONICAL_SURFACES = {
     "world-engine/app/story_runtime/manager/",
     # Phase 2 Stage M — Follow-up composition enforces information_disclosure
     # gate on generated NPC reply text (ADR-0058 §Stage M).
-    "ai_stack/story_runtime/ws_session_loop.py",
+    "ai_stack/story_runtime/session_loop/",
 }
 
 EXPECTATION_VARIATION_CANONICAL_SURFACES = {

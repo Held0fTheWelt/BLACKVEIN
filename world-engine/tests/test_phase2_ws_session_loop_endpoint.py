@@ -35,7 +35,7 @@ from ai_stack.contracts.director_pulse_contracts import (
     CUT_IN_UNINTERRUPTED,
     build_block_stream_event,
 )
-from ai_stack.story_runtime.ws_session_loop import (
+from ai_stack.story_runtime.session_loop import (
     PHASE2_WS_SESSION_LOOP_ENABLED,
     SCHEMA_PLAYER_CUT_IN_HANDOFF,
     is_ws_session_loop_enabled,

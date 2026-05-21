@@ -42,11 +42,43 @@ def _flag_enabled(name: str) -> bool:
     return True
 
 
+def w5_ast_narrator_strict_enabled() -> bool:
+    """Phase 6B-3B opt-in strict-narrator gate (default-off).
+
+    Distinct from ``W5_AST_NARRATOR_PROJECTION_ENABLED`` (Phase 6B-1
+    default-on, controls whether the typed ``w5_projection`` is added to
+    narrator ``source_facts``). This flag controls whether the legacy
+    ``transition_from_previous`` block is still treated as a first-class
+    narrator situation input.
+
+    Semantics (opt-in):
+
+    - unset / empty → ``False`` (legacy ``transition_from_previous`` remains
+      first-class in narrator ``source_facts`` and prompt fallback paragraph
+      stays in place — current Phase 6B-3A behavior is preserved).
+    - explicit ``1/true/yes/on`` (case-insensitive) → ``True`` (W5 narrator
+      projection is the actor-situation authority; legacy
+      ``transition_from_previous`` is demoted to a non-authoritative
+      compatibility/debug field and the prompt fallback paragraph is removed).
+    - explicit ``0/false/no/off`` → ``False``.
+
+    The Phase 2 W5 projection wiring and the malformed-W5 / explicit-opt-out
+    safety fallbacks of ``W5_AST_NARRATOR_PROJECTION_ENABLED`` are
+    unaffected. How remains first-class. Inferred Why remains soft truth.
+    """
+
+    raw = (os.environ.get("W5_AST_NARRATOR_STRICT_ENABLED") or "").strip().lower()
+    if raw in {"1", "true", "yes", "on"}:
+        return True
+    return False
+
+
 def w5_projection_flag_states() -> dict[str, bool]:
     """Return current W5 feature-flag posture without mutating runtime config."""
 
     return {
         "narrator": _flag_enabled("W5_AST_NARRATOR_PROJECTION_ENABLED"),
+        "narrator_strict": w5_ast_narrator_strict_enabled(),
         "director": _flag_enabled("W5_AST_DIRECTOR_PROJECTION_ENABLED"),
         "npc": _flag_enabled("W5_AST_NPC_PROJECTION_ENABLED"),
         "player_shell": _flag_enabled("W5_AST_FRONTEND_PLAYER_VIEW_ENABLED"),
@@ -508,5 +540,6 @@ __all__ = [
     "build_w5_langfuse_metadata",
     "build_w5_runtime_metadata",
     "coerce_w5_snapshot",
+    "w5_ast_narrator_strict_enabled",
     "w5_projection_flag_states",
 ]

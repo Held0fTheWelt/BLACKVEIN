@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from ai_stack.actor_tracking import w5_ast_narrator_strict_enabled
 from ai_stack.story_runtime.god_of_carnage.god_of_carnage_yaml_authority import (
     load_goc_canonical_module_yaml,
     load_goc_canonical_path_yaml,
@@ -373,10 +374,28 @@ def _block(
         if str(first_beat.get("id") or "").strip() == str(mandatory_beat.get("id") or "").strip()
         else step
     )
-    source_facts["transition_from_previous"] = _transition_facts(
+    transition_payload = _transition_facts(
         previous_step=transition_previous_step,
         current_step=step,
     )
+    # Phase 6B-3B F8: under W5_AST_NARRATOR_STRICT_ENABLED the W5 narrator
+    # projection (added by Phase 2 wiring in source_facts.w5_projection) is the
+    # actor-situation authority. The legacy transition_from_previous block is
+    # demoted to a non-authoritative compatibility/debug field so consumers can
+    # detect strict mode without losing the parity trail. Default-off keeps
+    # the Phase 6B-3A behavior exactly.
+    if w5_ast_narrator_strict_enabled():
+        legacy_compat = source_facts.get("_legacy_compat")
+        if not isinstance(legacy_compat, dict):
+            legacy_compat = {}
+        legacy_compat["transition_from_previous"] = transition_payload
+        legacy_compat["authority"] = "w5_projection"
+        legacy_compat["notice"] = (
+            "non-authoritative; W5 narrator projection is the actor-situation authority"
+        )
+        source_facts["_legacy_compat"] = legacy_compat
+    else:
+        source_facts["transition_from_previous"] = transition_payload
     block = {
         "id": f"opening-narrator-path-{index}",
         "block_type": "narrator",

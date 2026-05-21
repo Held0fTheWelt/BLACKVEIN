@@ -459,7 +459,7 @@ names.
 - Table B anti-hardcoding gate — `stream_readiness.py`,
   `block_stream_dual_mode.py`, `npc_motivation_score_engine.py`,
   `director_pulse_contracts.py`, `director_pulse_shadow.py`,
-  `ws_session_loop.py`, `autonomous_tick.py` registered as
+  `session_loop/`, `autonomous_tick.py` registered as
   canonical surfaces for `scene_energy`, `narrative_momentum`, and
   `pacing_rhythm` aspects
 - Stage D anti-hardcoding: cut-in semantics are block-type-driven via
@@ -513,7 +513,7 @@ names.
   semantic provider returns text only — the safety gates are owned
   by this module; no hardcoded actor IDs, NPC lines, or assistant
   phrasing anywhere in the dispatcher
-- Stage M canonical-surface registration: `ws_session_loop.py`
+- Stage M canonical-surface registration: `session_loop/`
   is the registered Stage-M canonical surface in
   `SCENE_ENERGY_CANONICAL_SURFACES` and
   `INFORMATION_DISCLOSURE_CANONICAL_SURFACES`
@@ -636,7 +636,7 @@ without mutating mid-turn graph state. Stage I is the "future events only"
 boundary that mid-turn graph mutation (a future-work item) will need to
 respect.
 
-**New entry points:** `ai_stack/story_runtime/ws_session_loop.py`
+**New entry points:** `ai_stack/story_runtime/session_loop/`
 
 - `build_replanning_request(...)` — `replanning_request.v1`. Captures
   the delivery boundary at the cut moment (committed event IDs,
@@ -685,7 +685,7 @@ Stage K adds the immediate Director handoff that promotes a queued
 player cut-in into the next turn's authoritative trigger, while pausing
 any in-progress autonomous-pause loop.
 
-**New entry points:** `ai_stack/story_runtime/ws_session_loop.py`
+**New entry points:** `ai_stack/story_runtime/session_loop/`
 
 - `build_player_cut_in_handoff(...)` — `player_cut_in_handoff.v1`.
   Carries `handoff_id`, the originating `cut_in_id`, the
@@ -720,7 +720,7 @@ silence is the right answer). It also constructs the future-only follow-up
 event that the WS transport then streams (Stage L+M jointly own the
 follow-up event shape).
 
-**New entry points:** `ai_stack/story_runtime/ws_session_loop.py`
+**New entry points:** `ai_stack/story_runtime/session_loop/`
 
 - `build_post_cut_in_replanning_decision(...)` —
   `post_cut_in_replanning_decision.v1`. Carries the source handoff

@@ -242,7 +242,7 @@ explicit future work and are not part of Phase 2 closure.
 - `ai_stack/story_runtime/god_of_carnage/god_of_carnage_souffleuse.py` — unchanged; existing opening-phase Souffleuse path.
 - `ai_stack/contracts/director_pulse_contracts.py` — `BLOCK_TYPE_SOUFFLEUSE`, `LANE_PLAYER_HINT`,
   and `CUT_KIND_SKIP_TO_END` constants define the Souffleuse's stream position.
-- `ai_stack/story_runtime/ws_session_loop.py` — Stage M follow-up composition
+- `ai_stack/story_runtime/session_loop/` — Stage M follow-up composition
   dispatcher (`_compose_npc_follow_up`, `_compose_template_render_follow_up`,
   `_compose_semantic_npc_follow_up`, `_run_safety_gates`,
   `_build_follow_up_composition_request`). Closed-enum vocabulary:

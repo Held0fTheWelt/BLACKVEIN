@@ -37,15 +37,15 @@ tests that actually realize each stage.
 | **B** | Dual mode block stream (parallel `block_stream_events` channel) | `ai_stack/story_runtime/block_stream_dual_mode.py` | `PHASE2_BLOCK_STREAM_DUAL_MODE_ENABLED` | **complete** |
 | **B→C** | Stream readiness diagnostics (`phase2_event_stream_readiness`) | `ai_stack/story_runtime/stream_readiness.py` | inherits Stage B | **complete** |
 | **C** | Primary event stream (event stream promoted over bundle on the frontend) | `ai_stack/story_runtime/stream_readiness.py` + `frontend/static/play_blocks_orchestrator.js` | server `PHASE2_BLOCK_STREAM_PRIMARY_ENABLED`, client `window.WOS_PHASE2_BLOCK_STREAM_PRIMARY_ENABLED` | **complete** |
-| **D** | WebSocket session loop + live cut-in protocol | `ai_stack/story_runtime/ws_session_loop.py`, `world-engine/app/api/story_ws.py`, `frontend/static/play_blocks_orchestrator.js` | server `PHASE2_WS_SESSION_LOOP_ENABLED`, pacing `PHASE2_WS_BLOCK_PACING_SECONDS`, client `window.WOS_PHASE2_WS_SESSION_LOOP_ENABLED` | **complete** |
+| **D** | WebSocket session loop + live cut-in protocol | `ai_stack/story_runtime/session_loop/`, `world-engine/app/api/story_ws.py`, `frontend/static/play_blocks_orchestrator.js` | server `PHASE2_WS_SESSION_LOOP_ENABLED`, pacing `PHASE2_WS_BLOCK_PACING_SECONDS`, client `window.WOS_PHASE2_WS_SESSION_LOOP_ENABLED` | **complete** |
 | **E** | Autonomous Director tick (event-driven; at-most-one block per tick) | `ai_stack/story_runtime/autonomous_tick.py` | `PHASE2_AUTONOMOUS_TICK_ENABLED` | **complete** |
 | **F** | Capability-fed ticks + off-stage update *candidate* preview | `ai_stack/story_runtime/autonomous_tick.py`, `ai_stack/story_runtime/off_stage_updates.py` | inherits Stage E (off-stage path is preview-only without Stage G) | **complete** |
 | **G** | Off-stage safe-commit policy (opt-in; preview→commit) | `ai_stack/story_runtime/off_stage_updates.py` (`commit_off_stage_update_candidates`) | inherits Stage F; commit requires per-call `OffStageCommitInputs` policy + targets (preview-only when omitted) | **complete (scaffold)** — see §5.3 |
 | **H** | Multi-tick pause loop (bounded explicit pause iteration) | `ai_stack/story_runtime/autonomous_tick.py` (`evaluate_autonomous_pause_loop`) | `PHASE2_AUTONOMOUS_PAUSE_LOOP_ENABLED` (inherits Stage E) | **complete** |
-| **I** | Replanning readiness (Stage-I replanning decision: cancel future events only, never mutate history) | `ai_stack/story_runtime/ws_session_loop.py` (`build_replanning_decision`) | inherits Stage D | **complete** |
-| **K** | Player cut-in handoff (promotes queued input into the next turn trigger) | `ai_stack/story_runtime/ws_session_loop.py` (`build_player_cut_in_handoff`) | inherits Stage D | **complete** |
-| **L** | Post-cut-in replanning + follow-up execution (template render) | `ai_stack/story_runtime/ws_session_loop.py` (`build_post_cut_in_replanning_decision`, `build_post_cut_in_follow_up_event`) | inherits Stage D | **complete** |
-| **M** | Semantic NPC follow-up composition (template ↔ semantic dispatcher, closed-enum safety gates) | `ai_stack/story_runtime/ws_session_loop.py` (`_compose_npc_follow_up`, `_run_safety_gates`) | `PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED` **and** an injected `FollowUpSemanticProvider` (both required) | **complete (template + dispatcher); semantic provider wiring is Future Work — see §5.2** |
+| **I** | Replanning readiness (Stage-I replanning decision: cancel future events only, never mutate history) | `ai_stack/story_runtime/session_loop/` (`build_replanning_decision`) | inherits Stage D | **complete** |
+| **K** | Player cut-in handoff (promotes queued input into the next turn trigger) | `ai_stack/story_runtime/session_loop/` (`build_player_cut_in_handoff`) | inherits Stage D | **complete** |
+| **L** | Post-cut-in replanning + follow-up execution (template render) | `ai_stack/story_runtime/session_loop/` (`build_post_cut_in_replanning_decision`, `build_post_cut_in_follow_up_event`) | inherits Stage D | **complete** |
+| **M** | Semantic NPC follow-up composition (template ↔ semantic dispatcher, closed-enum safety gates) | `ai_stack/story_runtime/session_loop/` (`_compose_npc_follow_up`, `_run_safety_gates`) | `PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED` **and** an injected `FollowUpSemanticProvider` (both required) | **complete (template + dispatcher); semantic provider wiring is Future Work — see §5.2** |
 
 All flags are **fail-closed**. Off or unparseable values disable the stage.
 Stage-A shadow output and Stage-B→C readiness diagnostics ride on every turn
@@ -84,7 +84,7 @@ cut-kind semantics, and the `fallback_path`.
 
 | ADR | Title | Status | Implementation coverage |
 |---|---|---|---|
-| [ADR-0039](../ADR/adr-0039-gate-tests-no-hardcoded-oracle-bypass.md) | Gate tests: no hardcoded oracles; no Pi/Π runtime keys | **Accepted** | Enforced by `tests/gates/test_table_b_anti_hardcoding_gate.py` (18/18 passing, incl. Pi-scope and runtime-surface inventory tests). Stage-M additions to `SCENE_ENERGY_CANONICAL_SURFACES` and `INFORMATION_DISCLOSURE_CANONICAL_SURFACES` are scoped to `ai_stack/story_runtime/ws_session_loop.py` only and are commented as Stage M usage. |
+| [ADR-0039](../ADR/adr-0039-gate-tests-no-hardcoded-oracle-bypass.md) | Gate tests: no hardcoded oracles; no Pi/Π runtime keys | **Accepted** | Enforced by `tests/gates/test_table_b_anti_hardcoding_gate.py` (18/18 passing, incl. Pi-scope and runtime-surface inventory tests). Stage-M additions to `SCENE_ENERGY_CANONICAL_SURFACES` and `INFORMATION_DISCLOSURE_CANONICAL_SURFACES` are scoped to `ai_stack/story_runtime/session_loop/` only and are commented as Stage M usage. |
 | [ADR-0058](../ADR/adr-0058-director-driven-pulse-block-stream-bus.md) | Director-Driven Pulse and Block-Stream-Bus | **Accepted** | Stages A–M plus a Completion Pass documented in the ADR body (refreshed 2026-05-20). Companion short conceptual ADR ([`adr-0058-director-driven-pulse-and-block-stream-bus.md`](../ADR/adr-0058-director-driven-pulse-and-block-stream-bus.md)) carries a Phase-2 completion banner that defers to the long file for the stage map. |
 | [ADR-0059](../ADR/adr-0059-semantic-npc-motivation-score.md) | Semantic NPC Motivation Score | **Accepted** | `ai_stack/story_runtime/npc_agency/npc_motivation_score_engine.py` + Stage-F three-tier source classification (`real_runtime_signal` / `module_policy_default` / `missing_signal`) surface via `stream_readiness.classify_motivation_component_sources` (now documented in ADR-0059 §9). |
 | [ADR-0060](../ADR/adr-0060-souffleuse-inner-voice-composition.md) | Souffleuse inner-voice composition | **Accepted** | Souffleuse block-type registered in `director_pulse_contracts.BLOCK_TYPE_SOUFFLEUSE` and the WS cut-kind map (`souffleuse → skip_to_end`). Stage-M NPC follow-up composition (template + safety-gated semantic dispatcher) documented in ADR-0060 §9–§12; live Director-composed Souffleuse pressure-escalation blocks remain explicit Future Work (§5.2). |
@@ -113,7 +113,7 @@ The hard guarantees that ADR-0058 asserts (no commit/readiness mutation, no
 `validation_outcome` change, no Pi/Π keys, no hardcoded actor/room IDs, cut
 semantics block-type-driven) are enforced by Stages G–M:
 
-- `ai_stack/story_runtime/ws_session_loop.py` records `"validation_outcome_changed": False`
+- `ai_stack/story_runtime/session_loop/` records `"validation_outcome_changed": False`
   on 5 contract surfaces (Stage K handoff, Stage L replanning decision, Stage L
   follow-up event, Stage M dispatcher results).
 - `"graph_state_mutated_mid_turn": False` and `"historical_events_mutated": False`

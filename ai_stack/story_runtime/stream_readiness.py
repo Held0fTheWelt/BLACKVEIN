@@ -25,7 +25,7 @@ from ai_stack.contracts.director_pulse_contracts import (
     CUT_KINDS,
     resolve_cut_kind_for_block_type,
 )
-from ai_stack.story_runtime.ws_session_loop import is_ws_session_loop_enabled
+from ai_stack.story_runtime.session_loop import is_ws_session_loop_enabled
 
 # ── Readiness proof levels ────────────────────────────────────────────────────
 
