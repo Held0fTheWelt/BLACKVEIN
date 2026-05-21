@@ -385,9 +385,72 @@ Phase 3B keeps W5 read-only for NPC planning. Actor Lane authority, commit/readi
 
 **Phase 6B-3B explicitly does not** delete the `transition_from_previous` block, the prompt fallback paragraph, or the admin parity bridge. The legacy block is gated behind an opt-in strict flag; the F11 NPC legacy-context-bundle removal is left untouched and sequenced as Phase 6B-3C.
 
-### Phase 6B-3C — NPC planner W5-first migration (planned)
+### Phase 6B-3C — NPC planner W5-first migration (complete)
 
-- F11 NPC planner W5-first migration: pass `npc_w5_situations` first into the planner contract; treat `npc_context_bundle` as a malformed-W5 fallback. Pin `test_npc_agency_planner.py`, `test_npc_agency_contracts.py`, `test_npc_agency_long_horizon_claim_readiness.py`, and `test_wave3_multi_actor_vitality.py` before removing the bundle from the non-fallback call path.
+**Goal:** Migrate the F11 legacy `npc_context_bundle` attachment behind a W5-first selector so NPC planning consumes the actor-specific Phase 3B W5 NPC projection (`target_consumer="npc"`) as the primary actor-situation authority under the default-on happy path. The legacy bundle remains the forwarded planner substrate under explicit opt-out, malformed/missing W5, and old-payload sessions. **No legacy code is removed in Phase 6B-3C.** No committed event is mutated. Explicit opt-out and malformed-W5 safety fallbacks are preserved.
+
+**New resolver — `resolve_w5_first_npc_context()` (read-side classifier)**
+
+- [x] Public helper added at `ai_stack/langgraph/runtime_executor/reaction_order_governance.py` SOURCE_LINES; re-exported via `ai_stack.langgraph.runtime_executor.public`.
+- [x] Four-way classification mirrors Phase 6B-3A's `resolve_w5_first_actor_locations`:
+  - `w5_projection` — default-on, at least one per-actor W5 NPC projection succeeded. W5 is the primary actor-situation authority; the legacy bundle is demoted to a non-authoritative `_legacy_compat` breadcrumb and is **not** forwarded to the planner.
+  - `explicit_opt_out_legacy` — `W5_AST_NPC_PROJECTION_ENABLED ∈ {0, false, no, off}`. Pre-Phase-6B-3C behaviour preserved verbatim: the bundle is the primary NPC planning substrate.
+  - `malformed_w5_fallback` — default-on with a snapshot but every per-actor `build_w5_projection_for_npc(...)` call raised. Legacy bundle is the safety net.
+  - `old_payload_legacy` — default-on but no `w5_latest_snapshot` is present (pre-Phase-1 session or missing wire-in). Legacy bundle is the fallback.
+- [x] `effective_npc_context_bundle` is `None` only under `w5_projection`; under O/M/L the bundle is forwarded verbatim. The resolver returns a defensive copy so the planner never aliases the caller's dict.
+- [x] `npc_context_legacy_compat_visible` is `True` iff the legacy bundle is present AND demoted (`w5_projection` source); under O/M/L the bundle is primary, not legacy_compat.
+- [x] Explicit-argument override (`w5_npc_projection_enabled=...`) wins over the env so a single turn cannot observe a mid-flight flag flip.
+
+**F11 — legacy NPC context bundle migrated to W5-first**
+
+- [x] `_build_npc_agency_plan_projection(...)` (`ai_stack/langgraph/runtime_executor/npc_agency_projection.py` SOURCE_LINES) now calls `resolve_w5_first_npc_context(...)` after `_build_w5_npc_projection_inputs(...)`. The resolved `effective_npc_context_bundle` is forwarded into `build_npc_agency_simulation(...)` and the fallback `build_npc_agency_plan(...)`. On the default-on happy path the planner receives `None` and the `npc_context_bundle` row no longer appears in `source_evidence`; on O/M/L the bundle is forwarded verbatim and `source_evidence` retains the legacy row.
+- [x] Per-actor diagnostics from `_build_w5_npc_projection_inputs(...)` carry three new keys, computed at the turn level and back-filled on every emitted row:
+  - `npc_context_source` — one of `w5_projection` / `malformed_w5_fallback` / `old_payload_legacy`.
+  - `npc_context_legacy_compat_visible` — whether the legacy bundle is present in state and demoted.
+  - `npc_context_fallback_reason` — compact reason on the fallback paths; `None` under `w5_projection`.
+- [x] Opt-out short-circuit (F9) is preserved bit-for-bit: `_build_w5_npc_projection_inputs(...)` returns `({}, [])` so the dramatic packet still omits `w5_npc_projection_diagnostics`.
+
+**Fallback behavior preserved**
+
+- [x] Explicit opt-out (`W5_AST_NPC_PROJECTION_ENABLED=0/false/no/off`) continues to revert NPC planning to the legacy bundle as the only substrate. No `actor_w5_situation` is attached to NPC proposals. No diagnostics are emitted.
+- [x] Malformed/missing-W5 snapshots continue to fall back to the legacy bundle (F10 in the Phase 6B-2 inventory). Per-actor `w5_npc_projection_failed` reasons are preserved unchanged.
+- [x] Old payloads without a `w5_latest_snapshot` continue to use the legacy bundle. Per-actor diagnostics flag `npc_context_source == "old_payload_legacy"` so admin/observability can correlate.
+- [x] Public compatibility aliases (`current_room`, `current_room_id`, `actor_locations`, `gathering_scene_id`, `complete_actor_locations_for_gathering`) are unchanged.
+- [x] No legacy function is removed. `npc_context_bundle` and `build_npc_context_bundle(...)` are still computed by the retrieval-context layer; only the *attachment site* in the NPC agency planner contract is migrated. Removing the bundle entirely is sequenced into a later Phase 6B-4 inventory pass.
+
+**Privacy / actor knowledge scope preserved**
+
+- [x] Phase 3B contract is unchanged. The W5 NPC projection still enforces per-actor visibility:
+  - the target NPC may receive its own private inferred Why;
+  - another actor's private/inferred Why is exposed only when `actor_knowledge_scope` allows the target NPC;
+  - player-private and GM/director-only facts never leak into NPC projections.
+- [x] The legacy bundle, when used, contains only retrieval-lane metadata (`allowed_memory_lanes` / `blocked_memory_lanes`); the planner never reads the bundle's `private_memory` body.
+- [x] How remains first-class in every emitted NPC `actor_w5_situation`. Inferred Why remains soft truth (`truth_attribution[...] == "inferred"`).
+
+**Diagnostics added / updated**
+
+- [x] Per-actor `npc_context_source` / `npc_context_legacy_compat_visible` / `npc_context_fallback_reason` (new in Phase 6B-3C, back-filled on every per-actor `w5_npc_projection_diagnostics` row).
+- [x] Existing per-actor diagnostics (`w5_npc_projection_used`, `w5_npc_projection_failed`, `w5_snapshot_id`, `npc_actor_id`, `npc_projection_source`, `npc_projection_has_how`, `npc_projection_has_inferred_why`) are unchanged.
+- [x] `w5_npc_projection_diagnostics` continues to surface on the dramatic packet under default-on and on `graph_diagnostics["w5_npc_projection"]`; opt-out continues to suppress the key.
+
+**Tests added / updated**
+
+- [x] New `ai_stack/tests/test_w5_actor_tracking_phase_6b3c_npc_planner_migration.py` pins:
+  - `resolve_w5_first_npc_context(...)` four-way classification (D / O / M / L), defensive-copy semantics, explicit-argument override, and tolerance for `None` / empty-dict bundles / `None` diagnostics.
+  - Per-actor diagnostic back-fill under D (with and without the legacy bundle present), L (missing snapshot), M (snapshot present, every actor failed), and O (no diagnostics emitted at all).
+  - Dramatic-packet routing: D — `source_evidence` does NOT contain `npc_context_bundle` and DOES contain `w5_npc_projection`; proposals carry `actor_w5_situation` with `target_consumer="npc"`; diagnostics flag `npc_context_source="w5_projection"`. O — `npc_context_bundle` IS in `source_evidence`, no W5 row, no diagnostics, no `actor_w5_situation`. M / L — `npc_context_bundle` IS in `source_evidence`, per-actor diagnostics flag the appropriate fallback source.
+  - How first-class (`how_summary.facts.tone` present, NOT folded into `what_summary`) and inferred Why soft (`truth_attribution["why_summary.facts.motive"] == "inferred"`) on every D-path proposal.
+  - Plan-shape stability — the simulation top-level keys and each `npc_initiatives` row keep their canonical contract under the migration.
+  - Privacy: target NPC sees its own private inferred motive; another NPC's private inferred motive without `actor_knowledge_scope` does NOT leak; legacy bundle's `private_memory` body never appears in `source_evidence` even under opt-out.
+  - Planner-layer guarantees pinned directly via `build_npc_agency_simulation(npc_context_bundle=None, ...)` and `build_npc_agency_plan(npc_context_bundle=None, ...)` — the `npc_context_bundle` row is absent and the `w5_npc_projection` row is present.
+- [x] Existing suites continue to pin Phase 6B-3C's contract: `ai_stack/tests/test_npc_agency_planner.py`, `ai_stack/tests/test_npc_agency_contracts.py`, `ai_stack/tests/test_npc_agency_long_horizon_claim_readiness.py`, `ai_stack/tests/test_wave3_multi_actor_vitality.py`, `ai_stack/tests/test_w5_actor_tracking_phase_6b1_default_on_flags.py`, `ai_stack/tests/test_w5_actor_tracking_phase_6b2_fallback_inventory.py`, `ai_stack/tests/test_w5_actor_tracking_phase_6b3a_consumer_migration.py`, `ai_stack/tests/test_w5_actor_tracking_phase_6b3b_narrator_strict_migration.py`, `ai_stack/tests/test_phase_c_reaction_order_governance.py`, `ai_stack/tests/test_vitality_telemetry_v1.py`, `ai_stack/tests/test_actor_lane_absence_governance.py`, `tests/gates/test_goc_mvp03_live_dramatic_scene_simulator_gate.py`, and `tests/test_inventory_w5_legacy_consumers.py`.
+
+**Phase 6B-3C explicitly does not** delete `npc_context_bundle`, `build_npc_context_bundle(...)`, or any opt-out / malformed-W5 safety fallback. The legacy bundle is gated behind the W5-first selector under default-on; the planner's `build_npc_agency_simulation(...)` / `build_npc_agency_plan(...)` continue to accept the bundle as the fallback substrate. A Phase 6B-4 fresh inventory pass is required to identify any branches that are now demonstrably dead under default-on before any deletion proceeds.
+
+### Phase 6B-4 — Fresh consumer-removal inventory (planned)
+
+- Re-run the Phase 6A inventory script over the working tree once Phase 6B-3C lands. Specifically: under default-on + strict-on, classify which legacy NPC context / narrator transition branches are now *demonstrably* dead vs still serving as the explicit-opt-out / malformed-W5 / old-payload safety net. Branches that remain reachable under at least one of `O`, `M`, or `L` continue to be `keep_*_fallback`; only branches that fire on **none** of those four conditions are removal candidates.
+- Output: a new `Phase 6B-4` section of [w5_legacy_consumer_removal_inventory.md](./w5_legacy_consumer_removal_inventory.md) with per-branch reachability proofs and the next sequenced consumer migrations.
 
 ### Phase 6B — Legacy localization decommission (planned)
 
