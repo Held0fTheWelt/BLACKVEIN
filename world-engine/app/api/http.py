@@ -57,12 +57,12 @@ from .http_routes.runtime_config_routes import (
     reload_story_runtime_governed_config,
     story_runtime_config_status,
 )
-from .http_routes.story_session_routes import (
+from .http_routes.story_session_lifecycle_routes import (
     create_story_session,
-    execute_story_turn,
     generate_story_session_opening,
     list_story_sessions,
 )
+from .http_routes.story_turn_routes import execute_story_turn
 from .http_routes.story_state_routes import (
     get_story_diagnostics,
     get_story_runtime_diagnostic_snapshot,

@@ -450,8 +450,63 @@ The new F21/F22 diagnostic `graph_diagnostics["actor_locations_source"]["source"
 
 | Sub-phase | Scope | Status |
 |-----------|-------|--------|
-| **6B-3A** | F1 lazy re-order + F21/F22 W5-first reads + diagnostics. | ✅ complete (this section). |
-| 6B-3B | F8 / F18 / F19 sequenced removal of narrator `transition_from_previous` fallback. Requires the narrator prompt to become W5-only behind a strict flag, the parity tests in `test_story_runtime_w5_narrator_projection.py` to be rewritten, and the admin parity bridge F20 (`diagnostics_api.py::_w5_runtime_metadata_for_session`) to be updated in lockstep. | planned. |
+| **6B-3A** | F1 lazy re-order + F21/F22 W5-first reads + diagnostics. | ✅ complete (Phase 6B-3A section above). |
+| **6B-3B** | F8 / F18 / F19 / F20 narrator `transition_from_previous` migration behind the new opt-in `W5_AST_NARRATOR_STRICT_ENABLED` flag (default-off). Under strict-ON: `source_facts.transition_from_previous` is demoted into `source_facts._legacy_compat`, the narrator prompt fallback paragraph is replaced with a W5-only paragraph that preserves Who / Where / What / How / Why (How first-class, inferred Why soft), and the admin parity bridge labels legacy compat as `demoted_to_legacy_compat`. Legacy code is not deleted; the strict flag default-off preserves Phase 6B-3A behavior bit-for-bit. | ✅ complete (Phase 6B-3B section below). |
 | 6B-3C | F11 NPC planner W5-first migration: pass `npc_w5_situations` first into the planner contract; treat `npc_context_bundle` as a malformed-W5 fallback. Requires `test_npc_agency_planner.py`, `test_npc_agency_contracts.py`, `test_npc_agency_long_horizon_claim_readiness.py`, and `test_wave3_multi_actor_vitality.py` to stay green. | planned. |
+| later ADR | F17 player-shell `current_room_id` alias and F24 WS `viewer_room_id` alias. Requires frontend / WebSocket client upgrade. | out of 6B-3 scope. |
+| later ADR | F23 `narrator_consequence_contracts.py` (C7) and the sensory engine (C8). Requires a new W5-first builder for movement framing and stage-level area. | out of 6B-3 scope. |
+
+---
+
+## Phase 6B-3B — Narrator `transition_from_previous` migration behind strict flag (complete)
+
+**Phase:** 6B-3B is the second commit of Phase 6B-3. It migrates the F8 / F18 / F19 / F20 narrator-transition surfaces behind the new opt-in `W5_AST_NARRATOR_STRICT_ENABLED` flag without removing any legacy code, opt-out short-circuit, malformed-W5 safety net, substrate read, or public compatibility alias. **No legacy code is removed in Phase 6B-3B. No committed event is mutated.**
+
+### Phase 6B-3B — what changed
+
+| # | Change | File(s) | Effect |
+|---|--------|---------|--------|
+| Flag | New opt-in resolver `w5_ast_narrator_strict_enabled()` | `ai_stack/actor_tracking/diagnostics.py` SOURCE_LINES; re-exported by `ai_stack/actor_tracking/__init__.py`; included in `w5_projection_flag_states()` under the `"narrator_strict"` key. | Default-off (`False` on unset / empty / explicit `0/false/no/off`). `1/true/yes/on` (case-insensitive) → strict mode. Independent of `W5_AST_NARRATOR_PROJECTION_ENABLED`. |
+| F8 | `source_facts.transition_from_previous` migrated behind strict flag | `ai_stack/story_runtime/narrator/god_of_carnage_narrator_path.py::_block` SOURCE_LINES | Strict-OFF (default): legacy `source_facts["transition_from_previous"] = _transition_facts(...)` preserved bit-for-bit. Strict-ON: top-level key omitted; same payload demoted into `source_facts["_legacy_compat"]["transition_from_previous"]` with `authority="w5_projection"` and a non-authoritative `notice`. Hard-cut directed-transition still inspectable under `_legacy_compat`. |
+| F18 | Narrator prompt fallback paragraph migrated behind strict flag | `world-engine/app/story_runtime/manager/narrator_output_prompts.py::_narrator_path_output_prompt` SOURCE_LINES | Strict-OFF: legacy fallback paragraph + hard-cut directed-transition guidance preserved. Strict-ON: replaced by a W5-only paragraph that names `who_summary` / `where_summary` / `what_summary` / `how_summary` / `why_summary` explicitly, keeps How first-class (forbids folding into What), marks inferred Why as soft truth (never spoken as observed fact), and instructs the narrator to ignore `source_facts.transition_from_previous` and treat `source_facts._legacy_compat` as non-authoritative debug breadcrumbs. |
+| F19 | Opening-fallback observability docstring wording | `world-engine/app/story_runtime/manager/opening_fallback_observability.py::_w5_ast_narrator_projection_enabled` SOURCE_LINES | Rewritten to W5-first / `transition_from_previous`-legacy-compatibility language. Explicitly documents that under strict mode the legacy block is demoted into `source_facts._legacy_compat` and the prompt fallback paragraph is removed. Resolver behavior unchanged. |
+| F20 | Admin parity bridge labels W5-first source and demotes legacy parity surface under strict | `world-engine/app/story_runtime/manager/diagnostics_api.py::get_w5_langfuse_metadata` SOURCE_LINES | New diagnostic labels added to the langfuse metadata payload: `w5.location_changed_source` (`"w5_history_projection"` / `"w5_history_insufficient"`), `w5.location_changed_compute_failed` (set only on extraction error), `w5.narrator_strict_enabled` (mirrors resolver), `w5.legacy_transition_parity` (`"legacy_compat_visible"` under strict-OFF, `"demoted_to_legacy_compat"` under strict-ON). The primary `w5.location_changed_this_turn` signal is still computed from W5 history snapshots on both postures; `transition_from_previous.location_changed` is **not** read by the admin bridge under either posture. |
+
+### Phase 6B-3B — what is preserved
+
+- **Explicit opt-out fallback for narrator projection** (F6 in the Phase 6B-2 inventory) is unchanged. `W5_AST_NARRATOR_PROJECTION_ENABLED=0/false/no/off` still suppresses `source_facts.w5_projection` regardless of the strict flag.
+- **Malformed/missing-W5 safety fallback for narrator projection** (F7) is unchanged. Malformed snapshots still record `w5_narrator_projection_failed` and return blocks unmodified.
+- **Substrate writers and readers** (S1–S8 in Phase 6A; F4 / F5 / F16 / F20 / F25 in Phase 6B-2) are unchanged.
+- **Public compatibility aliases** (`current_room`, `current_room_id`, `actor_locations`, `gathering_scene_id`, `complete_actor_locations_for_gathering`) are unchanged.
+- **Legacy fallback function** `_transition_facts(...)` is still computed under both strict postures. Strict mode only changes where the resulting payload lands in `source_facts` (top-level vs `_legacy_compat`).
+- **No committed event is mutated.** ADR-0033 commit semantics, the Actor Lane, the Canonical Path, `validation_outcome`, ADR-0061 pause semantics, ADR-0063 W5 semantics, and W5 validation semantics are unchanged.
+- **How remains first-class. Inferred Why remains soft truth.** The strict-ON narrator prompt explicitly names How attributes (tone / manner / intensity / pace / physicality / method / style) and forbids folding them into What. Inferred Why is marked as soft truth and never described as observed fact.
+
+### Phase 6B-3B — `w5.location_changed_source` and `w5.legacy_transition_parity` classification
+
+The new F20 diagnostic labels are one of:
+
+| Field | Value | Meaning |
+|-------|-------|---------|
+| `w5.location_changed_source` | `w5_history_projection` | Per-actor `where.value` comparison across `w5_history[-2]` and `w5_history[-1]` succeeded. |
+| | `w5_history_insufficient` | Fewer than two W5 snapshots are available; `w5.location_changed_this_turn` defaults to `False`. |
+| `w5.location_changed_compute_failed` | `True` | Extraction raised an exception; bridge falls back to `False` (non-authoritative diagnostic). Field is omitted when the compute succeeded. |
+| `w5.narrator_strict_enabled` | `True` / `False` | Mirrors the resolver. |
+| `w5.legacy_transition_parity` | `legacy_compat_visible` | Strict-OFF: operators may correlate against `source_facts.transition_from_previous` from committed narrator blocks. |
+| | `demoted_to_legacy_compat` | Strict-ON: legacy parity surface is non-authoritative debug breadcrumb only. |
+
+### Phase 6B-3B — tests added / updated
+
+- `ai_stack/tests/test_w5_actor_tracking_phase_6b3b_narrator_strict_migration.py` (new). Pins the strict-flag resolver contract (default-off / explicit on/off / independence from projection / reporter exposure) and the F8 source_facts contract under both postures (top-level vs `_legacy_compat` demotion, canonical-step / mandatory-beat parity, authored hard_cut breadcrumb survival).
+- `world-engine/tests/test_story_runtime_w5_narrator_strict_migration.py` (new). Pins the F18 prompt-text contract under both postures (legacy fallback paragraph vs W5-only paragraph; Who / Where / What / How / Why guidance preserved on every posture; How first-class; inferred Why marked as soft) and the F20 admin parity bridge labels under both postures (W5-history primary signal; legacy_compat_visible vs demoted_to_legacy_compat; strict-ON ignores stray legacy `transition_from_previous.location_changed=True` claims).
+- `ai_stack/tests/test_w5_actor_tracking_phase_6b1_default_on_flags.py` and `ai_stack/tests/test_w5_actor_tracking_phase_6b2_fallback_inventory.py` (updated). Reporter-shape assertions now include `"narrator_strict": False` under default-off; the Phase 6B-1 default-on contract for the five consumer flags is unchanged.
+- Existing suites continue to pin Phase 6B-3B's contract under strict-OFF: `world-engine/tests/test_story_runtime_w5_narrator_projection.py`, `world-engine/tests/test_goc_narrator_path_opening.py`, `ai_stack/tests/test_god_of_carnage_narrator_path.py`, `ai_stack/tests/test_actor_tracking_diagnostics.py`, `ai_stack/tests/test_w5_actor_tracking_projection.py`, `ai_stack/tests/test_w5_actor_tracking_validation.py`, `ai_stack/tests/test_w5_actor_tracking_phase_6b3a_consumer_migration.py`, and `tests/test_inventory_w5_legacy_consumers.py`.
+
+### Phase 6B-3B — what Phase 6B-3 still has to do
+
+| Sub-phase | Scope | Status |
+|-----------|-------|--------|
+| 6B-3C | F11 NPC planner W5-first migration: pass `npc_w5_situations` first into the planner contract; treat `npc_context_bundle` as a malformed-W5 fallback. Requires `test_npc_agency_planner.py`, `test_npc_agency_contracts.py`, `test_npc_agency_long_horizon_claim_readiness.py`, and `test_wave3_multi_actor_vitality.py` to stay green. | planned. |
+| later ADR | Permanently flip `W5_AST_NARRATOR_STRICT_ENABLED` to default-on once production-side parity tests are rewritten to assert W5-only narrator prompts; then physically remove the legacy `transition_from_previous` block, the unstrict prompt paragraph, and the legacy_compat debug surface. | out of 6B-3B scope. |
 | later ADR | F17 player-shell `current_room_id` alias and F24 WS `viewer_room_id` alias. Requires frontend / WebSocket client upgrade. | out of 6B-3 scope. |
 | later ADR | F23 `narrator_consequence_contracts.py` (C7) and the sensory engine (C8). Requires a new W5-first builder for movement framing and stage-level area. | out of 6B-3 scope. |

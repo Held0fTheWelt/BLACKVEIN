@@ -5,7 +5,8 @@ This package owns the implementation behind `app.api.http`. The root `http.py` m
 - `common.py` contains the shared router, dependency helpers, auth guard, and small runtime helpers.
 - `models.py` contains request payload models.
 - `play_run_routes.py` covers template, run, ticket, and transcript HTTP endpoints.
-- `story_session_routes.py` covers story-session creation, opening generation, and turn execution.
+- `story_session_lifecycle_routes.py` covers story-session listing, creation, and opening generation.
+- `story_turn_routes.py` covers story-turn execution and its Langfuse trace lifecycle.
 - `story_state_routes.py` covers state, diagnostics, W5, and read-only diagnostic snapshots.
 - `branching_routes.py` covers branch tree and branch timeline endpoints.
 - `narrative_web_routes.py` covers callback web, consequence cascade, diagnostics envelope, streaming, and narrative governance summary endpoints.

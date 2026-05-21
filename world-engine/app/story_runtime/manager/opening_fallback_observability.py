@@ -230,12 +230,18 @@ class _OpeningFallbackObservabilityMixin:
     def _w5_ast_narrator_projection_enabled() -> bool:
         """ADR-0063 narrator-projection flag (default-on as of Phase 6B-1).
 
-        Returns True when unset/empty: narrator composition consumes the
-        typed W5 projection as a primary actor-situation input while the
-        legacy ``transition_from_previous`` block remains as fallback.
-        Explicit opt-out is preserved — setting the env var to
+        Returns True when unset/empty: narrator composition treats the typed
+        W5 projection as the actor-situation authority on a W5-first basis.
+        The legacy ``transition_from_previous`` block continues to be emitted
+        as legacy-compatibility breadcrumb under Phase 6B-3B until
+        ``W5_AST_NARRATOR_STRICT_ENABLED`` is opted in, at which point the
+        legacy block is demoted into ``source_facts._legacy_compat`` and the
+        prompt fallback paragraph is removed.
+
+        Explicit opt-out is preserved — setting this env var to
         ``0/false/no/off`` restores Phase 1 behavior (no ``w5_projection`` in
-        narrator ``source_facts``).
+        narrator ``source_facts``). The Phase 6B-3B strict flag is a separate
+        opt-in switch and does not affect this resolver.
         """
 
         raw = (os.environ.get("W5_AST_NARRATOR_PROJECTION_ENABLED") or "").strip().lower()

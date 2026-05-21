@@ -70,8 +70,19 @@ class _DiagnosticsApiMixin:
         )
 
     def get_w5_langfuse_metadata(self, session_id: str) -> dict[str, Any]:
+        # Phase 6B-3B F20 admin parity bridge.
+        # Under both strict-flag postures the primary location_changed signal
+        # is computed from the typed W5 narrator projection (the per-actor
+        # ``where`` fact derived from successive snapshots in ``w5_history``).
+        # transition_from_previous.location_changed is no longer consulted
+        # here; the bridge therefore always reads W5 first. Under
+        # ``W5_AST_NARRATOR_STRICT_ENABLED=on`` we additionally annotate the
+        # payload to mark legacy-parity surfaces as non-authoritative.
         session = self.get_session(session_id)
+        strict = w5_ast_narrator_strict_enabled()
         location_changed = False
+        location_changed_source = "w5_history_projection"
+        location_changed_compute_failed = False
         if isinstance(session.w5_history, list) and len(session.w5_history) >= 2:
             try:
                 previous = build_w5_admin_snapshot_view(session.w5_history[-2])
@@ -92,11 +103,26 @@ class _DiagnosticsApiMixin:
                 )
             except Exception:
                 location_changed = False
-        return build_w5_langfuse_metadata(
+                location_changed_compute_failed = True
+        else:
+            location_changed_source = "w5_history_insufficient"
+        metadata = build_w5_langfuse_metadata(
             session.w5_latest_snapshot,
             latest_validation_outcome=self._latest_w5_validation_outcome(session),
             location_changed_this_turn=location_changed,
         )
+        metadata["w5.location_changed_source"] = location_changed_source
+        metadata["w5.narrator_strict_enabled"] = strict
+        if location_changed_compute_failed:
+            metadata["w5.location_changed_compute_failed"] = True
+        if not strict:
+            # Under unstrict, legacy parity context remains visible for
+            # operators inspecting transition_from_previous in committed
+            # narrator blocks; the field is informational, not authoritative.
+            metadata["w5.legacy_transition_parity"] = "legacy_compat_visible"
+        else:
+            metadata["w5.legacy_transition_parity"] = "demoted_to_legacy_compat"
+        return metadata
 
     def get_diagnostics(self, session_id: str) -> dict[str, Any]:
         session = self.get_session(session_id)

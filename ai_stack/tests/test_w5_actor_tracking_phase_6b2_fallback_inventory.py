@@ -368,14 +368,19 @@ def test_f12_validation_explicit_opt_out_resolver(
 # ---------------------------------------------------------------------------
 
 
-def test_w5_projection_flag_states_reports_default_on_under_phase_6b2() -> None:
+def test_w5_projection_flag_states_reports_default_on_under_phase_6b2(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Phase 6B-2 must not regress the Phase 6B-1 default-on flag posture.
-    The reporter must mirror the live resolver state, with every flag
-    default-on when no env var is set."""
+    The reporter must mirror the live resolver state, with every Phase 6B-1
+    consumer flag default-on when no env var is set. The Phase 6B-3B
+    narrator-strict flag is reported alongside as default-off."""
 
+    monkeypatch.delenv("W5_AST_NARRATOR_STRICT_ENABLED", raising=False)
     states = w5_projection_flag_states()
     assert states == {
         "narrator": True,
+        "narrator_strict": False,
         "director": True,
         "npc": True,
         "player_shell": True,
