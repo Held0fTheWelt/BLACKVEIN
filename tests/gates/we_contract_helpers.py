@@ -1,8 +1,9 @@
 """World-engine contract helpers for gate tests (AST + import oracles, no source substring greps).
 
-These utilities parse ``world-engine/app/api/http.py`` and the package-based
-``story_runtime/manager`` sources as structured AST instead of scanning raw
-source text, and validate import boundaries for LDSS.
+These utilities parse ``world-engine/app/api/http.py``, its package-based
+``http_routes`` imports, and the package-based ``story_runtime/manager``
+sources as structured AST instead of scanning raw source text, and validate
+import boundaries for LDSS.
 """
 
 from __future__ import annotations
@@ -13,9 +14,8 @@ import textwrap
 from pathlib import Path
 
 
-def extract_router_get_routes(http_py: Path) -> list[tuple[str, str]]:
-    """Return (path, function_name) for each ``@router.get("...")`` on module-level routes."""
-    tree = ast.parse(http_py.read_text(encoding="utf-8"))
+def _router_get_routes_from_tree(tree: ast.Module) -> list[tuple[str, str]]:
+    """Return module-level ``@router.get("...")`` route/function pairs from an AST."""
     out: list[tuple[str, str]] = []
     for node in tree.body:
         if not isinstance(node, ast.FunctionDef):
@@ -31,6 +31,30 @@ def extract_router_get_routes(http_py: Path) -> list[tuple[str, str]]:
             arg0 = dec.args[0]
             if isinstance(arg0, ast.Constant) and isinstance(arg0.value, str):
                 out.append((arg0.value, node.name))
+    return out
+
+
+def _direct_http_route_imports(http_py: Path, tree: ast.Module) -> list[Path]:
+    """Return directly imported ``http_routes`` module files from the HTTP facade."""
+    out: list[Path] = []
+    for node in tree.body:
+        if not isinstance(node, ast.ImportFrom):
+            continue
+        module = node.module or ""
+        if not module.startswith("http_routes."):
+            continue
+        candidate = http_py.parent / (module.replace(".", "/") + ".py")
+        if candidate.is_file():
+            out.append(candidate)
+    return out
+
+
+def extract_router_get_routes(http_py: Path) -> list[tuple[str, str]]:
+    """Return ``@router.get("...")`` pairs from the HTTP facade and imported route modules."""
+    tree = ast.parse(http_py.read_text(encoding="utf-8"))
+    out = _router_get_routes_from_tree(tree)
+    for route_module in _direct_http_route_imports(http_py, tree):
+        out.extend(_router_get_routes_from_tree(ast.parse(route_module.read_text(encoding="utf-8"))))
     return out
 
 
